@@ -798,8 +798,16 @@
         </div>
         <h3 class="font-semibold text-gray-800 text-base">Alle Einträge löschen</h3>
       </div>
-      <p id="confirm-msg" class="text-sm text-gray-600 mb-1">Alle Einträge unwiderruflich löschen?</p>
-      <p class="text-xs text-gray-400 mb-6">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-500 mb-1.5">Welche Daten löschen?</label>
+        <select id="confirm-sheet-select"
+          class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent">
+          <option value="Tanken">Tankvorgänge</option>
+          <option value="Kosten">Ausgaben</option>
+          <option value="KMStand">KM-Stände</option>
+        </select>
+      </div>
+      <p class="text-xs text-gray-400 mb-5">Diese Aktion kann nicht rückgängig gemacht werden.</p>
       <input type="hidden" id="confirm-sheet">
       <input type="hidden" id="confirm-label">
       <div class="flex gap-3">
@@ -816,6 +824,6 @@
   </div>
 
   <script src="js/config.js?v=1780868894"></script>
-  <script src="js/app.js?v=1780871342"></script>
+  <script src="js/app.js?v=1780873203"></script>
 </body>
 </html>

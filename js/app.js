@@ -83,10 +83,9 @@ function exportToExcel() {
   XLSX.writeFile(wb, filename);
 }
 
-function confirmDeleteAll(sheet, label) {
-  q('#confirm-msg').textContent   = `Alle ${label}-Einträge unwiderruflich löschen?`;
-  q('#confirm-sheet').value       = sheet;
-  q('#confirm-label').textContent = label;
+function confirmDeleteAll(sheet) {
+  const sel = q('#confirm-sheet-select');
+  if (sel && sheet) sel.value = sheet;
   q('#modal-confirm').classList.remove('hidden');
 }
 
@@ -133,13 +132,8 @@ async function loadData() {
     state.kosten  = (k.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
     state.kmstand = (km.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
 
-    // Fahrzeug: key-value Tabellenblatt → Objekt
-    state.fahrzeug = {};
-    (f.data || []).forEach(row => {
-      const key = Object.values(row)[1]; // erste Spalte nach _row
-      const val = Object.values(row)[2];
-      if (key) state.fahrzeug[key] = val;
-    });
+    // Fahrzeug: erste Datenzeile direkt als Objekt
+    state.fahrzeug = (f.data || [])[0] || {};
 
     buildYearFilter();
     setLoading(false);
@@ -251,19 +245,36 @@ function calcStats() {
 // ─── Render Übersicht ─────────────────────────────────────────────────────────
 
 const KAT_SVG = {
-  'Tanken':       `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>`,
-  'Versicherung': `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`,
-  'Inspektion':   `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>`,
-  'Reparatur':    `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`,
-  'KFZ-Steuer':   `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>`,
-  'Parken':       `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>`,
-  'Waschanlage':  `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547"/></svg>`,
+  'Tanken':         `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>`,
+  'Versicherung':   `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`,
+  'Inspektion':     `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  'Reparatur':      `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`,
+  'KFZ-Steuer':     `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>`,
+  'Parken':         `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>`,
+  'Bewohnerparken': `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>`,
+  'Autowäsche':     `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M8 8l4 4-4 4"/></svg>`,
+  'Waschanlage':    `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>`,
+  'TÜV':            `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>`,
+  'Motoröl':        `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>`,
+  'Ersatzteile':    `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  'An-/Ummeldung':  `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+  'Sonstiges':      `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M12 12h.01M19 12h.01"/></svg>`,
 };
 const KAT_COLOR = {
-  'Tanken':'text-blue-500 bg-blue-50','Versicherung':'text-emerald-500 bg-emerald-50',
-  'Inspektion':'text-orange-500 bg-orange-50','Reparatur':'text-red-500 bg-red-50',
-  'KFZ-Steuer':'text-violet-500 bg-violet-50','Parken':'text-gray-500 bg-gray-100',
-  'Waschanlage':'text-cyan-500 bg-cyan-50',
+  'Tanken':         'text-blue-500 bg-blue-50',
+  'Versicherung':   'text-emerald-500 bg-emerald-50',
+  'Inspektion':     'text-orange-500 bg-orange-50',
+  'Reparatur':      'text-red-500 bg-red-50',
+  'KFZ-Steuer':     'text-violet-500 bg-violet-50',
+  'Parken':         'text-gray-500 bg-gray-100',
+  'Bewohnerparken': 'text-gray-500 bg-gray-100',
+  'Autowäsche':     'text-cyan-500 bg-cyan-50',
+  'Waschanlage':    'text-cyan-500 bg-cyan-50',
+  'TÜV':            'text-green-500 bg-green-50',
+  'Motoröl':        'text-yellow-600 bg-yellow-50',
+  'Ersatzteile':    'text-orange-500 bg-orange-50',
+  'An-/Ummeldung':  'text-violet-500 bg-violet-50',
+  'Sonstiges':      'text-gray-500 bg-gray-100',
 };
 
 function renderDashboard() {
@@ -470,8 +481,10 @@ function renderUpcomingList() {
 
 function renderAusgabenUeberblick(s) {
   const all = [
-    ...s.tank.slice(0, 10).map(e => ({ datum: e.datum, kat: 'Tanken', label: e.tankstelle || 'Tankstelle', betrag: Number(e.kosten || 0) })),
-    ...s.kosten.slice(0, 10).map(e => ({ datum: e.datum, kat: e.kategorie || 'Sonstiges', label: e.beschreibung || e.kategorie, betrag: Number(e.betrag || 0) }))
+    ...s.tank.filter(e => Number(e.kosten) > 0).slice(0, 10)
+      .map(e => ({ datum: e.datum, kat: 'Tanken', label: e.tankstelle || 'Tankstelle', betrag: Number(e.kosten) })),
+    ...s.kosten.slice(0, 10)
+      .map(e => ({ datum: e.datum, kat: e.kategorie || 'Sonstiges', label: e.beschreibung || e.kategorie, betrag: Number(e.betrag || 0) }))
   ].sort((a, b) => String(b.datum).localeCompare(String(a.datum))).slice(0, 7);
 
   q('#ausgaben-uberblick').innerHTML = all.length ? all.map(e => {
@@ -546,10 +559,10 @@ function renderVehicleSidebar() {
   // suchen wir in den Row-Objekten nach den richtigen Feldern
   const rows = state.fahrzeug._raw || [];
 
-  q('#v-modell').textContent      = f.modell      || f.Modell      || 'Seat Leon';
-  q('#v-zulassung').textContent   = f.zulassung_datum || f['Zulassung Datum'] || '2018';
-  q('#v-kraftstoff').textContent  = f.kraftstoff_standard || f.Kraftstoff || 'Benzin';
-  q('#v-kennzeichen').textContent = f.kennzeichen || f.Kennzeichen || '—';
+  q('#v-modell').textContent      = f.modell || '—';
+  q('#v-zulassung').textContent   = f.zulassung_datum ? String(f.zulassung_datum).slice(0, 4) : '—';
+  q('#v-kraftstoff').textContent  = f.kraftsoff_standard || f.kraftstoff_standard || '—';
+  q('#v-kennzeichen').textContent = f.kennzeichen || '—';
 
   const sub = q('#header-sub');
   const modell = f.modell || f.Modell;
@@ -759,11 +772,26 @@ function renderStatistiken() {
 // ─── Render All ───────────────────────────────────────────────────────────────
 
 function renderAll() {
+  syncKategorieDropdown();
   renderDashboard();
   renderTankList();
   renderKostenList();
   renderTermineList();
   renderStatistiken();
+}
+
+function syncKategorieDropdown() {
+  const sel = q('select[name="kategorie"]');
+  if (!sel) return;
+  const existing = new Set([...sel.options].map(o => o.value));
+  const fromData = [...new Set(state.kosten.map(e => e.kategorie).filter(Boolean))];
+  fromData.forEach(kat => {
+    if (!existing.has(kat)) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = kat;
+      sel.appendChild(opt);
+    }
+  });
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
@@ -896,15 +924,16 @@ document.addEventListener('DOMContentLoaded', () => {
   q('#btn-export-kosten').addEventListener('click', exportToExcel);
 
   // Löschen (Bestätigungs-Modal öffnen)
-  q('#btn-delete-tank').addEventListener('click',   () => confirmDeleteAll('Tanken',  'Tankvorgänge'));
-  q('#btn-delete-kosten').addEventListener('click', () => confirmDeleteAll('Kosten',  'Ausgaben'));
+  q('#btn-delete-tank').addEventListener('click',   () => confirmDeleteAll('Tanken'));
+  q('#btn-delete-kosten').addEventListener('click', () => confirmDeleteAll('Kosten'));
 
   // Bestätigungs-Modal Buttons
   q('#confirm-cancel').addEventListener('click', () => q('#modal-confirm').classList.add('hidden'));
   q('#modal-confirm').addEventListener('click', e => { if (e.target === q('#modal-confirm')) q('#modal-confirm').classList.add('hidden'); });
   q('#confirm-ok').addEventListener('click', async () => {
-    const sheet = q('#confirm-sheet').value;
-    const label = q('#confirm-label').textContent;
+    const sel   = q('#confirm-sheet-select');
+    const sheet = sel ? sel.value : q('#confirm-sheet').value;
+    const label = sel ? sel.options[sel.selectedIndex].text : sheet;
     const btn   = q('#confirm-ok');
     btn.disabled    = true;
     btn.textContent = 'Löschen…';
