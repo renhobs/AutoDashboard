@@ -7,6 +7,7 @@
   <title>AutoDashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { -webkit-tap-highlight-color: transparent; }
     .nav-link.active { background: #eff6ff; color: #2563eb; }
@@ -141,18 +142,13 @@
     <div id="main" class="hidden flex-1">
 
       <!-- ── PAGE HEADER ───────────────────────── -->
-      <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <h1 class="text-xl font-bold text-gray-800">Auto Dashboard</h1>
-          <p id="header-sub" class="text-sm text-gray-400 mt-0.5">Alle Fahrzeugkosten im Überblick</p>
-        </div>
+      <header id="main-header" class="bg-white border-b border-slate-100 px-6 py-3 flex items-center justify-between sticky top-0 z-10 md:hidden">
+        <h1 class="text-base font-bold text-gray-800">Auto Dashboard</h1>
         <div class="flex items-center gap-2">
-          <select id="year-filter"
-            class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          <select id="year-filter-mobile" class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-gray-600 focus:outline-none cursor-pointer">
             <option value="">Alle Jahre</option>
           </select>
-          <button id="btn-refresh"
-            class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+          <button id="btn-refresh-mobile" class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -163,106 +159,177 @@
       <!-- ════════════════════════════════════════
            VIEW: DASHBOARD (Übersicht)
       ════════════════════════════════════════ -->
-      <div id="view-dashboard" class="view active p-6 space-y-5">
+      <div id="view-dashboard" class="view active p-5 md:p-6 space-y-5">
 
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Gesamtausgaben</span>
-              <span class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </span>
+        <!-- ── Dashboard-Header ───────────────────────────────── -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="img/seat-leon.svg" alt="Seat Leon" class="h-11 w-auto hidden sm:block">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Auto Dashboard</h1>
+              <p id="header-sub" class="text-sm text-gray-400 mt-0.5">Seat Leon</p>
             </div>
-            <p id="kpi-gesamt" class="text-2xl font-bold text-gray-800">—</p>
-            <p id="kpi-gesamt-sub" class="text-xs text-gray-400 mt-1">Tanken + Weitere Kosten</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <select id="year-filter" class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="">Alle Jahre</option>
+            </select>
+            <button id="btn-refresh" class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── KPI Row ─────────────────────────────────────────── -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+          <!-- Kilometerstand -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-gray-500 font-medium leading-tight">Kilometerstand</span>
+            </div>
+            <p id="kpi-km" class="text-2xl font-bold text-gray-900">—</p>
+            <p id="kpi-km-sub" class="text-xs text-gray-400 mt-1.5">KM-Stand noch nicht erfasst</p>
           </div>
 
+          <!-- Gesamtausgaben -->
           <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Tanken gesamt</span>
-              <span class="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center">
-                <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
-              </span>
+              </div>
+              <span class="text-sm text-gray-500 font-medium leading-tight">Gesamtausgaben</span>
             </div>
-            <p id="kpi-tank-gesamt" class="text-2xl font-bold text-gray-800">—</p>
-            <p id="kpi-tank-sub" class="text-xs text-gray-400 mt-1">— Tankungen</p>
+            <p id="kpi-gesamt" class="text-2xl font-bold text-gray-900">—</p>
+            <p id="kpi-gesamt-sub" class="text-xs mt-1.5 flex items-center gap-1 text-gray-400">
+              <span id="kpi-gesamt-trend-icon"></span><span id="kpi-gesamt-trend">Tanken + Kosten</span>
+            </p>
           </div>
 
+          <!-- Kosten pro km -->
           <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Ø Preis / Liter</span>
-              <span class="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center">
-                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
-              </span>
+              </div>
+              <span class="text-sm text-gray-500 font-medium leading-tight">Kosten pro km</span>
             </div>
-            <p id="kpi-preis" class="text-2xl font-bold text-gray-800">—</p>
-            <p id="kpi-preis-sub" class="text-xs text-gray-400 mt-1">Gewichteter Durchschnitt</p>
+            <p id="kpi-kost-km" class="text-2xl font-bold text-gray-900">—</p>
+            <p id="kpi-kost-km-sub" class="text-xs text-gray-400 mt-1.5">Benötigt KM-Stand</p>
           </div>
 
+          <!-- Ø Verbrauch -->
           <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Letzter KM-Stand</span>
-              <span class="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center">
-                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
                 </svg>
-              </span>
+              </div>
+              <span class="text-sm text-gray-500 font-medium leading-tight">Ø Verbrauch</span>
             </div>
-            <p id="kpi-km" class="text-2xl font-bold text-gray-800">—</p>
-            <p id="kpi-km-sub" class="text-xs text-gray-400 mt-1">— km</p>
+            <p id="kpi-verbrauch" class="text-2xl font-bold text-gray-900">—</p>
+            <p id="kpi-verbrauch-sub" class="text-xs text-gray-400 mt-1.5">l / 100 km</p>
           </div>
 
         </div>
 
-        <!-- Charts Row -->
+        <!-- ── Mittlere Reihe ──────────────────────────────────── -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-          <!-- Bar Chart: Monatliche Tankkosten -->
-          <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h2 class="font-semibold text-gray-800">Tanken & Fahrleistung</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Monatliche Tankkosten (€)</p>
-              </div>
-              <div id="last-tank-info" class="text-right text-xs text-gray-400 hidden">
-                <p class="font-medium text-gray-600">Letztes Tanken</p>
-                <p id="last-tank-date">—</p>
-                <p id="last-tank-details">—</p>
+          <!-- Tanken & Fahrleistung -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-5">
+              <h2 class="font-semibold text-gray-800 mb-4">Tanken & Fahrleistung</h2>
+              <div class="grid grid-cols-2 gap-4 items-start">
+                <!-- Letztes Tanken -->
+                <div>
+                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Letztes Tanken</p>
+                  <div class="space-y-2.5">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                      </svg>
+                      <span id="lt-liter" class="text-sm font-semibold text-gray-800">—</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                      </svg>
+                      <span id="lt-preis" class="text-sm font-semibold text-gray-800">—</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span id="lt-kosten" class="text-sm font-semibold text-gray-800">—</span>
+                    </div>
+                    <p id="lt-datum" class="text-xs text-gray-400 pt-1">—</p>
+                  </div>
+                </div>
+                <!-- Bar Chart -->
+                <div>
+                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Monatliche Kosten</p>
+                  <div class="relative" style="height:110px">
+                    <canvas id="barChart"></canvas>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="relative" style="height:160px">
-              <canvas id="barChart"></canvas>
-            </div>
-            <div id="km-monat-bar" class="hidden mt-3 flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2.5">
+            <!-- KM Banner -->
+            <div id="km-monat-bar" class="hidden bg-blue-50 px-5 py-3 flex items-center gap-2.5">
               <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
               </svg>
-              <span class="text-sm text-blue-700 font-medium">Gefahrene km diesen Monat: <span id="km-monat-val">—</span> km</span>
+              <span class="text-sm text-blue-700 font-semibold">Gefahrene km diesen Monat: <span id="km-monat-val">—</span> km</span>
             </div>
           </div>
 
-          <!-- Donut Chart: Kostenstruktur -->
+          <!-- Kostenstruktur -->
           <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <h2 class="font-semibold text-gray-800 mb-1">Kostenstruktur</h2>
-            <p class="text-xs text-gray-400 mb-4">Ausgaben im Zeitraum</p>
-            <div class="relative" style="height:160px">
+            <h2 class="font-semibold text-gray-800 mb-0.5">Kostenstruktur</h2>
+            <p class="text-xs text-gray-400 mb-3">Angaben für dieses Jahr</p>
+            <div class="relative" style="height:170px">
               <canvas id="donutChart"></canvas>
             </div>
             <div id="donut-legend" class="mt-4 space-y-1.5"></div>
           </div>
 
+          <!-- Ausgaben im Überblick -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-semibold text-gray-800">Ausgaben im Überblick</h2>
+              <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+            </div>
+            <div class="grid grid-cols-3 text-xs text-gray-400 pb-2 mb-1 border-b border-slate-100">
+              <span>Datum</span><span>Kategorie</span><span class="text-right">Betrag</span>
+            </div>
+            <div id="ausgaben-uberblick" class="flex-1 divide-y divide-slate-50 overflow-hidden"></div>
+            <button class="nav-link mt-3 text-xs text-blue-500 hover:text-blue-700 font-medium text-left" data-view="kosten">
+              Alle Ausgaben anzeigen →
+            </button>
+          </div>
+
         </div>
 
-        <!-- Bottom Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- ── Untere Reihe ────────────────────────────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
           <!-- Nächste fällige Termine -->
           <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
@@ -272,20 +339,61 @@
                 Alle anzeigen →
               </button>
             </div>
-            <div id="upcoming-list" class="space-y-2"></div>
+            <div id="upcoming-list" class="space-y-2.5"></div>
           </div>
 
-          <!-- Ausgaben im Überblick -->
-          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-semibold text-gray-800">Letzte Ausgaben</h2>
-              <button class="nav-link text-xs text-blue-500 hover:text-blue-700 font-medium" data-view="kosten">
-                Alle →
-              </button>
+          <!-- 4 kleine KPI-Karten -->
+          <div class="lg:col-span-3 grid grid-cols-2 gap-4">
+
+            <!-- Versicherung jährlich -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div class="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Versicherung jährlich</p>
+              <p id="kpi-versicherung" class="text-2xl font-bold text-gray-900">—</p>
+              <p id="kpi-versicherung-sub" class="text-xs text-gray-400 mt-1">—</p>
             </div>
-            <div id="recent-ausgaben" class="space-y-2"></div>
-          </div>
 
+            <!-- Sonstige Ausgaben -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div class="w-10 h-10 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Sonstige Ausgaben</p>
+              <p id="kpi-sonstige" class="text-2xl font-bold text-gray-900">—</p>
+              <p id="kpi-sonstige-sub" class="text-xs text-gray-400 mt-1">—</p>
+            </div>
+
+            <!-- Wartungskosten YTD -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div class="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Wartungskosten YTD</p>
+              <p id="kpi-wartung-ytd" class="text-2xl font-bold text-gray-900">—</p>
+              <p id="kpi-wartung-ytd-sub" class="text-xs text-gray-400 mt-1">—</p>
+            </div>
+
+            <!-- Letzter Service -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <p class="text-xs text-gray-400 mb-1">Letzter Service</p>
+              <p id="kpi-letzter-service" class="text-xl font-bold text-gray-900">—</p>
+              <p id="kpi-letzter-service-sub" class="text-xs text-gray-400 mt-1">—</p>
+            </div>
+
+          </div>
         </div>
 
       </div>
@@ -299,14 +407,59 @@
             <h2 class="text-xl font-bold text-gray-800">Tankvorgänge</h2>
             <p id="tank-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
           </div>
-          <button id="btn-add-tank"
-            class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-            </svg>
-            Eintrag
-          </button>
+          <div class="flex items-center gap-2">
+            <label id="import-trigger"
+              class="bg-white border border-slate-200 text-gray-600 text-sm px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-2 cursor-pointer">
+              <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              Excel
+              <input id="import-file" type="file" accept=".xlsx,.xls" class="hidden"/>
+            </label>
+            <button id="btn-add-tank"
+              class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              Eintrag
+            </button>
+          </div>
         </div>
+
+        <!-- Import-Vorschau -->
+        <div id="import-card" class="hidden mb-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <p class="text-sm font-semibold text-gray-800" id="import-title">Excel wird gelesen…</p>
+                <p class="text-xs text-gray-400 mt-0.5" id="import-info"></p>
+              </div>
+              <button id="import-cancel" class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div id="import-sample" class="text-xs text-gray-500 bg-slate-50 rounded-xl p-3 mb-3 max-h-36 overflow-y-auto space-y-1"></div>
+            <div id="import-actions" class="hidden flex gap-2">
+              <button id="import-confirm"
+                class="bg-green-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-green-700 transition-colors font-medium">
+                Jetzt importieren
+              </button>
+              <button id="import-cancel2"
+                class="bg-slate-100 text-gray-600 text-sm px-4 py-2 rounded-xl hover:bg-slate-200 transition-colors font-medium">
+                Abbrechen
+              </button>
+            </div>
+            <div id="import-progress" class="hidden">
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="import-bar" class="h-full bg-green-500 rounded-full transition-all duration-300" style="width:0%"></div>
+              </div>
+              <p id="import-progress-text" class="text-xs text-gray-400 mt-1.5"></p>
+            </div>
+          </div>
+        </div>
+
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div id="list-tank"></div>
         </div>
@@ -549,7 +702,7 @@
   <!-- Toast -->
   <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-full shadow-xl z-50 whitespace-nowrap"></div>
 
-  <script src="js/config.js?v=1780866266"></script>
-  <script src="js/app.js?v=1780866266"></script>
+  <script src="js/config.js?v=1780867888"></script>
+  <script src="js/app.js?v=1780867888"></script>
 </body>
 </html>

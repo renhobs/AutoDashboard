@@ -13,6 +13,39 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [v0.4.0] — 2026-06-07
+
+### Hinzugefügt
+- **Dashboard-Redesign** — komplett neues Layout nach Screenshot-Vorlage
+  - Header-Bereich mit Fahrzeugbild, Titel und Jahres-Filter
+  - 4 KPI-Karten: Kilometerstand, Gesamtausgaben (inkl. YoY-Trend), Kosten/km, Ø Verbrauch
+  - 3-spaltig (Desktop): Tanken & Fahrleistung | Kostenstruktur | Ausgaben im Überblick
+  - Balkendiagramm mit Wertebeschriftung über den Balken
+  - Donut-Chart mit Mitte-Beschriftung und Legende
+  - Tabelle "Ausgaben im Überblick" mit SVG-Icons pro Kategorie
+  - Unterer Bereich: Termine + 4 kleine KPI-Karten (Versicherung, Sonstiges, Wartung YTD, Letzter Service)
+- Excel-Upload-Funktion im Tanken-View (SheetJS, Duplikat-Erkennung, Batch-Import)
+- GitHub Pages Deployment (öffentliches Repo renhobs/AutoDashboard)
+- Mobile Header (Jahr-Filter + Refresh synchronisiert mit Desktop-Header)
+
+### Geändert
+- `js/app.js` — `q` und `qAll` an den Dateianfang verschoben (TDZ-Fix)
+- `js/app.js` — `renderDashboard()` komplett neu geschrieben für neue Element-IDs
+- `js/app.js` — `renderBarChart()` mit custom Plugin für Wert-Labels
+- `js/app.js` — `renderUpcomingList()` mit SVG-Icons und farbigen Badges
+- `js/app.js` — `buildYearFilter()` befüllt jetzt auch Mobile-Select synchron
+- `index.html` — `view-dashboard` vollständig ersetzt mit neuem Layout
+
+### Behoben
+- Chart.js Canvas-Timing: `setLoading(false)` vor `renderAll()` verhindert 0×0-Canvas
+
+### Technische Notizen
+- KAT_SVG/KAT_COLOR für konsistente Icon+Farb-Zuordnung pro Kategorie
+- `lastEntryWithData`: letzter Tankeintrag mit liter > 0 statt chronologisch letztem
+- YoY-Trend berechnet aus Vorjahresdaten im State (kein separater API-Call)
+
+---
+
 ## [v0.3.0] — 2026-06-07
 
 ### Hinzugefügt
