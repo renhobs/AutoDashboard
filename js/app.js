@@ -39,9 +39,36 @@ async function apiCall(params) {
 }
 
 const api = {
-  read: sheet         => apiCall({ action: 'read', sheet }),
-  add:  (sheet, data) => apiCall({ action: 'add',  sheet, data }),
+  read:   sheet              => apiCall({ action: 'read',   sheet }),
+  add:    (sheet, data)      => apiCall({ action: 'add',    sheet, data }),
+  update: (sheet, row, data) => apiCall({ action: 'update', sheet, row, data }),
 };
+
+// ─── Fälligkeits-Helfer ──────────────────────────────────────────────────────
+
+const INTERVALL_MONTHS = { monatlich: 1, quartalsweise: 3, halbjährlich: 6, jährlich: 12, '2-jährlich': 24 };
+
+function nextDueDate(baseDateStr, intervall) {
+  if (!baseDateStr || !intervall || intervall === 'einmalig') return '';
+  const m = INTERVALL_MONTHS[intervall];
+  if (!m) return '';
+  const d = new Date(baseDateStr + 'T12:00:00');
+  d.setMonth(d.getMonth() + m);
+  return d.toISOString().split('T')[0];
+}
+
+async function markTerminErledigt(entry) {
+  const btn = q(`[data-erledigt="${entry._row}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const newFaelligkeit = nextDueDate(entry.naechste_faelligkeit, entry.intervall);
+    await api.update('Kosten', entry._row, { ...entry, naechste_faelligkeit: newFaelligkeit });
+    await loadData();
+  } catch (err) {
+    showError('Konnte Termin nicht aktualisieren: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Erledigt'; }
+  }
+}
 
 // ─── Daten laden ──────────────────────────────────────────────────────────────
 
@@ -545,42 +572,81 @@ function renderKostenList() {
 // ─── Liste: Termine ───────────────────────────────────────────────────────────
 
 function renderTermineList() {
-  const now = today();
+  const container = q('#list-termine');
   const termine = state.kosten
     .filter(e => e.naechste_faelligkeit)
     .sort((a, b) => String(a.naechste_faelligkeit).localeCompare(String(b.naechste_faelligkeit)));
 
-  q('#list-termine').innerHTML = termine.length ? `
+  if (!termine.length) {
+    container.innerHTML = '<p class="text-sm text-gray-400 text-center py-12">Keine Fälligkeiten eingetragen — erst eine Ausgabe mit Fälligkeit erfassen.</p>';
+    return;
+  }
+
+  // Event-Delegation: einmal registrieren, wird bei jedem render ersetzt
+  container._termineData = termine;
+  container.innerHTML = `
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-slate-100">
           <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Beschreibung</th>
           <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Kategorie</th>
+          <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Intervall</th>
           <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Fällig</th>
           <th class="text-right px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Betrag</th>
           <th class="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+          <th class="px-5 py-3"></th>
         </tr>
       </thead>
       <tbody>
         ${termine.map(e => {
-          const days = Math.ceil((new Date(e.naechste_faelligkeit) - new Date()) / 86400000);
+          const days  = Math.ceil((new Date(e.naechste_faelligkeit + 'T12:00:00') - new Date()) / 86400000);
           const badge = days < 0
-            ? '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">Überfällig</span>'
+            ? '<span class="text-xs px-2.5 py-1 rounded-full bg-red-100 text-red-600 font-semibold">Überfällig</span>'
             : days <= 30
-              ? `<span class="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium">in ${days}d</span>`
+              ? `<span class="text-xs px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 font-semibold">in ${days}d</span>`
               : days <= 90
-                ? `<span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium">in ${days}d</span>`
-                : `<span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">in ${days}d</span>`;
-          return `<tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-            <td class="px-5 py-3 text-gray-700 font-medium">${KAT_ICONS[e.kategorie] || '📌'} ${e.beschreibung || '—'}</td>
-            <td class="px-5 py-3 hidden sm:table-cell"><span class="px-2 py-0.5 bg-slate-100 text-gray-600 rounded-full text-xs">${e.kategorie}</span></td>
-            <td class="px-5 py-3 text-gray-600 whitespace-nowrap">${dat(e.naechste_faelligkeit)}</td>
-            <td class="px-5 py-3 text-right font-semibold text-gray-800">${eur(e.betrag)}</td>
-            <td class="px-5 py-3">${badge}</td>
-          </tr>`;
+                ? `<span class="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 font-semibold">in ${days}d</span>`
+                : `<span class="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-600 font-semibold">in ${days}d</span>`;
+          const col  = KAT_COLOR[e.kategorie] || 'text-gray-500 bg-gray-100';
+          const icon = KAT_SVG[e.kategorie]   || KAT_SVG['Inspektion'];
+          const canAdvance = e.intervall && e.intervall !== 'einmalig' && INTERVALL_MONTHS[e.intervall];
+          const btnLabel   = canAdvance
+            ? `Erledigt → ${dat(nextDueDate(e.naechste_faelligkeit, e.intervall))}`
+            : 'Erledigt';
+          return `
+            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${col}">${icon}</span>
+                  <span class="font-medium text-gray-700">${e.beschreibung || e.kategorie}</span>
+                </div>
+              </td>
+              <td class="px-5 py-3 hidden sm:table-cell">
+                <span class="px-2 py-0.5 bg-slate-100 text-gray-600 rounded-full text-xs">${e.kategorie}</span>
+              </td>
+              <td class="px-5 py-3 hidden sm:table-cell text-xs text-gray-500">${e.intervall || '—'}</td>
+              <td class="px-5 py-3 text-gray-600 whitespace-nowrap">${dat(e.naechste_faelligkeit)}</td>
+              <td class="px-5 py-3 text-right font-semibold text-gray-800">${eur(e.betrag)}</td>
+              <td class="px-5 py-3">${badge}</td>
+              <td class="px-5 py-3">
+                <button data-erledigt="${e._row}"
+                  class="text-xs px-3 py-1.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors whitespace-nowrap">
+                  ${btnLabel}
+                </button>
+              </td>
+            </tr>`;
         }).join('')}
       </tbody>
-    </table>` : '<p class="text-sm text-gray-400 text-center py-12">Keine Fälligkeiten eingetragen</p>';
+    </table>`;
+
+  // Event-Delegation auf Container
+  container.onclick = ev => {
+    const btn = ev.target.closest('[data-erledigt]');
+    if (!btn) return;
+    const row  = Number(btn.dataset.erledigt);
+    const entry = container._termineData.find(e => e._row === row);
+    if (entry) markTerminErledigt(entry);
+  };
 }
 
 // ─── Statistiken ──────────────────────────────────────────────────────────────
@@ -708,7 +774,9 @@ function setLoading(show) {
 function showError(msg) { const el = q('#error'); el.textContent = msg; el.classList.remove('hidden'); }
 function clearError()   { q('#error').classList.add('hidden'); }
 function setDefaultDates(formId) {
-  qAll(`#${formId} input[type="date"]`).forEach(el => { if (!el.value) el.value = today(); });
+  qAll(`#${formId} input[type="date"]`).forEach(el => {
+    if (!el.value && el.name !== 'naechste_faelligkeit') el.value = today();
+  });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -740,10 +808,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const yfm = q('#year-filter-mobile');
   if (yfm) yfm.addEventListener('change', e => syncYear(e.target.value));
 
+  // Fälligkeit auto-berechnen: Datum oder Intervall ändern → Fälligkeitsfeld aktualisieren
+  const autoFaelligkeit = () => {
+    const d = q('#kosten-datum').value;
+    const i = q('#kosten-intervall').value;
+    const f = q('#kosten-faelligkeit');
+    if (!f.value) f.value = nextDueDate(d, i) || '';
+  };
+  q('#kosten-datum').addEventListener('change', autoFaelligkeit);
+  q('#kosten-intervall').addEventListener('change', () => {
+    const d = q('#kosten-datum').value;
+    const i = q('#kosten-intervall').value;
+    q('#kosten-faelligkeit').value = nextDueDate(d, i) || '';
+  });
+  q('#btn-calc-faelligkeit').addEventListener('click', () => {
+    const d = q('#kosten-datum').value;
+    const i = q('#kosten-intervall').value;
+    q('#kosten-faelligkeit').value = nextDueDate(d, i) || '';
+  });
+
   // Modals öffnen
   q('#btn-add-tank').addEventListener('click',   () => { setDefaultDates('form-tank');   openModal('modal-tank'); });
-  q('#btn-add-kosten').addEventListener('click', () => { setDefaultDates('form-kosten'); openModal('modal-kosten'); });
-  q('#btn-add-termin').addEventListener('click', () => { setDefaultDates('form-kosten'); openModal('modal-kosten'); });
+  const openKostenModal = () => {
+    setDefaultDates('form-kosten');
+    // Fälligkeit sofort aus Datum + Intervall berechnen (nicht einfach heute)
+    q('#kosten-faelligkeit').value = nextDueDate(q('#kosten-datum').value, q('#kosten-intervall').value) || '';
+    openModal('modal-kosten');
+  };
+  q('#btn-add-kosten').addEventListener('click', openKostenModal);
+  q('#btn-add-termin').addEventListener('click', openKostenModal);
 
   // Modals schließen
   qAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAll));

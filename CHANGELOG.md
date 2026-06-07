@@ -14,6 +14,32 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [v0.5.0] — 2026-06-07
+
+### Hinzugefügt
+- **Fälligkeits-Termine Phase 2** — vollständige Termin-Verwaltung mit Wiederholungslogik
+  - `nextDueDate()` — berechnet nächste Fälligkeit aus Datum + Intervall
+  - "Erledigt"-Button in Termine-Tabelle: markiert als bezahlt und schreibt Fälligkeit automatisch fort
+  - Preview des nächsten Datums direkt im Button: "Erledigt → 07.6.2027"
+  - SVG-Icons + Kategorie-Farben in der Termine-Liste
+  - Intervall-Spalte in der Tabelle (monatlich / quartalsweise / halbjährlich / jährlich / 2-jährlich)
+- **Modal-Verbesserungen (Ausgabe erfassen)**:
+  - 5 Intervall-Optionen: Einmalig, Monatlich, Quartalsweise, Halbjährlich, Jährlich (default), Alle 2 Jahre
+  - Auto-Berechnung der Nächsten Fälligkeit beim Öffnen und bei Änderung von Datum/Intervall
+  - "aus Datum berechnen"-Link für manuelle Neuberechnung
+  - `naechste_faelligkeit` wird nicht mehr mit "heute" vorausgefüllt
+- `api.update()` — REST-Update für bestehende Kosten-Einträge in Google Sheets
+
+### Geändert
+- `renderTermineList()` — Event-Delegation statt Inline-Handler, neue Tabellenspalten
+- `setDefaultDates()` — befüllt `naechste_faelligkeit` nicht mehr automatisch mit heute
+
+### Technische Notizen
+- `INTERVALL_MONTHS` Map für Monat-Berechnung aller Intervall-Typen
+- `markTerminErledigt()` schreibt `naechste_faelligkeit` per `api.update()` fort, kein neuer Datensatz
+
+---
+
 ## [v0.4.0] — 2026-06-07
 
 ### Hinzugefügt

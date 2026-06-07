@@ -10,7 +10,7 @@
 ## Projektübersicht
 
 **Name:** AutoDashboard
-**Version:** v0.4.0
+**Version:** v0.5.0
 **Ziel:** Dashboard zur Übersicht aller laufenden Autokosten. Phase 1: Tankvorgänge + wiederkehrende Ausgaben (KFZ-Steuer, Versicherung, Inspektionen, Reparaturen) erfassen. Phase 2: Fälligkeits-Timestamps, damit bevorstehende Ausgaben antizipiert werden können.
 **Status:** 🚧 In Entwicklung
 
@@ -134,6 +134,7 @@ Vollständige Historie: [CHANGELOG.md](CHANGELOG.md)
 
 | Version | Datum | Highlight |
 |---------|-------|-----------|
+| v0.5.0 | 2026-06-07 | Fälligkeits-Termine Phase 2: Erledigt-Button, Auto-Berechnung, Intervall-Auswahl |
 | v0.4.0 | 2026-06-07 | Dashboard-Redesign nach Screenshot-Vorlage, Excel-Upload, GitHub Pages |
 | v0.3.0 | 2026-06-07 | SVG-Fahrzeugbild, Python-Import-Skript für ÜbersichtTanken.xlsx |
 | v0.2.0 | 2026-06-07 | Initiales Dashboard, App-Logik, Apps Script Backend |
