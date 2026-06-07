@@ -8,8 +8,9 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 ## [Unreleased]
 
 ### Geplant
-- [ ] Tankerking API Integration
-- [ ] GitHub Pages Deployment (iPhone-Zugriff)
+- [ ] Tankerking API Integration (Kraftstoffpreise in der Nähe)
+- [ ] KM-Stand-Erfassung beim Tanken aktivieren
+- [ ] Phase 2: Fälligkeits-Timestamps für wiederkehrende Ausgaben
 
 ---
 
