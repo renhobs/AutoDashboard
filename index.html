@@ -408,17 +408,35 @@
             <h2 class="text-xl font-bold text-gray-800">Tankvorgänge</h2>
             <p id="tank-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Import -->
             <label id="import-trigger"
-              class="bg-white border border-slate-200 text-gray-600 text-sm px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-2 cursor-pointer">
+              class="bg-white border border-slate-200 text-gray-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-1.5 cursor-pointer">
               <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
               </svg>
-              Excel
+              Import
               <input id="import-file" type="file" accept=".xlsx,.xls" class="hidden"/>
             </label>
+            <!-- Export -->
+            <button id="btn-export-tank"
+              class="bg-white border border-slate-200 text-gray-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Export
+            </button>
+            <!-- Löschen -->
+            <button id="btn-delete-tank"
+              class="bg-white border border-red-200 text-red-500 text-sm px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Alles löschen
+            </button>
+            <!-- Eintrag -->
             <button id="btn-add-tank"
-              class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+              class="bg-blue-600 text-white text-sm px-3 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
               </svg>
@@ -475,13 +493,32 @@
             <h2 class="text-xl font-bold text-gray-800">Weitere Ausgaben</h2>
             <p id="kosten-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
           </div>
-          <button id="btn-add-kosten"
-            class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-            </svg>
-            Eintrag
-          </button>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Export -->
+            <button id="btn-export-kosten"
+              class="bg-white border border-slate-200 text-gray-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Export
+            </button>
+            <!-- Löschen -->
+            <button id="btn-delete-kosten"
+              class="bg-white border border-red-200 text-red-500 text-sm px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Alles löschen
+            </button>
+            <!-- Eintrag -->
+            <button id="btn-add-kosten"
+              class="bg-blue-600 text-white text-sm px-3 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              Eintrag
+            </button>
+          </div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div id="list-kosten"></div>
@@ -709,7 +746,35 @@
   <!-- Toast -->
   <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-full shadow-xl z-50 whitespace-nowrap"></div>
 
+  <!-- Bestätigungs-Modal (Löschen) -->
+  <div id="modal-confirm" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-base">Alle Einträge löschen</h3>
+      </div>
+      <p id="confirm-msg" class="text-sm text-gray-600 mb-1">Alle Einträge unwiderruflich löschen?</p>
+      <p class="text-xs text-gray-400 mb-6">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+      <input type="hidden" id="confirm-sheet">
+      <input type="hidden" id="confirm-label">
+      <div class="flex gap-3">
+        <button id="confirm-cancel"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-gray-600 hover:bg-slate-50 transition-colors">
+          Abbrechen
+        </button>
+        <button id="confirm-ok"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors">
+          Löschen
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/config.js?v=1780868894"></script>
-  <script src="js/app.js?v=1780869541"></script>
+  <script src="js/app.js?v=1780869880"></script>
 </body>
 </html>

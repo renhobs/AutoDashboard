@@ -58,6 +58,12 @@ function doGet(e) {
       return respond({ success: true });
     }
 
+    if (action === 'deleteAll') {
+      const lastRow = ws.getLastRow();
+      if (lastRow > 1) ws.deleteRows(2, lastRow - 1);
+      return respond({ success: true, deleted: Math.max(0, lastRow - 1) });
+    }
+
     return respond({ error: `Unbekannte Aktion: ${action}` });
 
   } catch (err) {

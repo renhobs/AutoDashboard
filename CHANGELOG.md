@@ -10,7 +10,30 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 ### Geplant
 - [ ] Tankerking API Integration (Kraftstoffpreise in der Nähe)
 - [ ] KM-Stand-Erfassung beim Tanken aktivieren
-- [ ] Phase 2: Fälligkeits-Timestamps für wiederkehrende Ausgaben
+
+---
+
+## [v0.5.1] — 2026-06-08
+
+### Hinzugefügt
+- **Export-Funktion** — alle Daten als `.xlsx`-Datei herunterladen (SheetJS)
+  - Button "Export" in Tanken- und Ausgaben-Ansicht
+  - Zwei Tabellenblätter: Tanken + Ausgaben, Dateiname mit Datum
+- **Alles löschen** — alle Datensätze eines Sheets auf einmal entfernen
+  - Bestätigungs-Modal mit Warntext vor dem Löschen
+  - Schließbar per Klick außerhalb des Modals oder "Abbrechen"
+  - Toast-Meldung nach erfolgreichem Löschen
+- `api.deleteAll()` — neuer API-Aufruf für `action=deleteAll`
+- `showToast(msg)` — Kurzmeldungs-Einblendung unten rechts
+- **Code.gs: `deleteAll`-Aktion** — löscht alle Zeilen ab Zeile 2 (Header bleibt erhalten)
+
+### Geändert
+- `index.html` — Bestätigungs-Modal `#modal-confirm` hinzugefügt
+- Cache-Buster für `app.js` aktualisiert
+
+### Technische Notizen
+- `deleteAll` in GAS: `ws.deleteRows(2, lastRow - 1)` — Header-Zeile wird nie gelöscht
+- Code.gs muss in Google Apps Script neu deployt werden damit `deleteAll` wirkt
 
 ---
 

@@ -39,10 +39,55 @@ async function apiCall(params) {
 }
 
 const api = {
-  read:   sheet              => apiCall({ action: 'read',   sheet }),
-  add:    (sheet, data)      => apiCall({ action: 'add',    sheet, data }),
-  update: (sheet, row, data) => apiCall({ action: 'update', sheet, row, data }),
+  read:      sheet              => apiCall({ action: 'read',      sheet }),
+  add:       (sheet, data)      => apiCall({ action: 'add',       sheet, data }),
+  update:    (sheet, row, data) => apiCall({ action: 'update',    sheet, row, data }),
+  deleteAll: sheet              => apiCall({ action: 'deleteAll', sheet }),
 };
+
+// ─── Export & Delete ─────────────────────────────────────────────────────────
+
+function exportToExcel() {
+  const wb = XLSX.utils.book_new();
+
+  const tankRows = state.tank.map(e => ({
+    Datum:            e.datum        || '',
+    Tankstelle:       e.tankstelle   || '',
+    Kraftstoff:       e.kraftstoff   || '',
+    'Liter':          Number(e.liter  || 0),
+    'Kosten (€)':     Number(e.kosten || 0),
+    '€/Liter':        Number(e.preis_pro_liter || 0),
+    KM_Stand:         e.km_stand     || '',
+    Konto:            e.konto        || '',
+    Karte:            e.karte        || '',
+    Beleg:            e.beleg        || '',
+    Hinweis:          e.hinweis      || '',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tankRows),  'Tanken');
+
+  const kostenRows = state.kosten.map(e => ({
+    Datum:               e.datum                || '',
+    Kategorie:           e.kategorie            || '',
+    Beschreibung:        e.beschreibung         || '',
+    'Betrag (€)':        Number(e.betrag        || 0),
+    Intervall:           e.intervall            || '',
+    Naechste_Faelligkeit: e.naechste_faelligkeit || '',
+    Konto:               e.konto               || '',
+    Beleg:               e.beleg               || '',
+    Hinweis:             e.hinweis             || '',
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kostenRows), 'Ausgaben');
+
+  const filename = `AutoDashboard_Export_${today()}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+function confirmDeleteAll(sheet, label) {
+  q('#confirm-msg').textContent   = `Alle ${label}-Einträge unwiderruflich löschen?`;
+  q('#confirm-sheet').value       = sheet;
+  q('#confirm-label').textContent = label;
+  q('#modal-confirm').classList.remove('hidden');
+}
 
 // ─── Fälligkeits-Helfer ──────────────────────────────────────────────────────
 
@@ -773,6 +818,14 @@ function setLoading(show) {
 }
 function showError(msg) { const el = q('#error'); el.textContent = msg; el.classList.remove('hidden'); }
 function clearError()   { q('#error').classList.add('hidden'); }
+function showToast(msg, ms = 3000) {
+  const el = q('#toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.add('hidden'), ms);
+}
+
 function setDefaultDates(formId) {
   qAll(`#${formId} input[type="date"]`).forEach(el => {
     if (!el.value && el.name !== 'naechste_faelligkeit') el.value = today();
@@ -825,6 +878,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const d = q('#kosten-datum').value;
     const i = q('#kosten-intervall').value;
     q('#kosten-faelligkeit').value = nextDueDate(d, i) || '';
+  });
+
+  // Export
+  q('#btn-export-tank').addEventListener('click',   exportToExcel);
+  q('#btn-export-kosten').addEventListener('click', exportToExcel);
+
+  // Löschen (Bestätigungs-Modal öffnen)
+  q('#btn-delete-tank').addEventListener('click',   () => confirmDeleteAll('Tanken',  'Tankvorgänge'));
+  q('#btn-delete-kosten').addEventListener('click', () => confirmDeleteAll('Kosten',  'Ausgaben'));
+
+  // Bestätigungs-Modal Buttons
+  q('#confirm-cancel').addEventListener('click', () => q('#modal-confirm').classList.add('hidden'));
+  q('#modal-confirm').addEventListener('click', e => { if (e.target === q('#modal-confirm')) q('#modal-confirm').classList.add('hidden'); });
+  q('#confirm-ok').addEventListener('click', async () => {
+    const sheet = q('#confirm-sheet').value;
+    const label = q('#confirm-label').textContent;
+    const btn   = q('#confirm-ok');
+    btn.disabled    = true;
+    btn.textContent = 'Löschen…';
+    try {
+      await api.deleteAll(sheet);
+      q('#modal-confirm').classList.add('hidden');
+      showToast(`${label} gelöscht`);
+      await loadData();
+    } catch (err) {
+      showError('Fehler beim Löschen: ' + err.message);
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Löschen';
+    }
   });
 
   // Modals öffnen
