@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>AutoDashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .nav-link.active { background: #eff6ff; color: #2563eb; }
+    .nav-link.active .nav-icon { background: #2563eb; color: #fff; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .view { display: none; }
+    .view.active { display: block; }
+  </style>
+</head>
+<body class="bg-slate-50 text-gray-800 font-sans">
+
+  <!-- ══════════════════════════════════════════
+       SIDEBAR (Desktop)
+  ══════════════════════════════════════════ -->
+  <aside id="sidebar"
+    class="hidden md:flex flex-col fixed left-0 top-0 h-full w-56 bg-white border-r border-slate-100 z-20">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 px-5 py-5 border-b border-slate-100">
+      <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l1.5 1M13 16H9m4 0h4.5L20 10l-3-4h-4v10z"/>
+        </svg>
+      </div>
+      <span class="font-bold text-gray-800">Auto Dashboard</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+
+      <button class="nav-link active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-slate-50 transition-all"
+        data-view="dashboard">
+        <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </span>
+        Übersicht
+      </button>
+
+      <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-slate-50 transition-all"
+        data-view="tanken">
+        <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </span>
+        Tanken
+      </button>
+
+      <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-slate-50 transition-all"
+        data-view="kosten">
+        <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </span>
+        Ausgaben
+      </button>
+
+      <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-slate-50 transition-all"
+        data-view="termine">
+        <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </span>
+        Termine
+      </button>
+
+      <button class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-slate-50 transition-all"
+        data-view="statistiken">
+        <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </span>
+        Statistiken
+      </button>
+
+    </nav>
+
+    <!-- Fahrzeug-Karte -->
+    <div id="vehicle-card" class="mx-3 mb-4 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+      <!-- Fahrzeugbild -->
+      <div class="bg-gradient-to-br from-slate-100 to-slate-200 px-3 pt-3 pb-1">
+        <img src="img/seat-leon.svg" alt="Seat Leon" class="w-full h-auto" style="max-height:72px;object-fit:contain"/>
+      </div>
+      <!-- Fahrzeugdaten -->
+      <div class="p-3">
+        <p id="v-modell" class="text-sm font-bold text-gray-800 mb-2">Seat Leon</p>
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-400">Erstzulassung</span>
+            <span id="v-zulassung" class="text-gray-600 font-medium">2018</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-400">Kraftstoff</span>
+            <span id="v-kraftstoff" class="text-gray-600 font-medium">Benzin</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-400">Kennzeichen</span>
+            <span id="v-kennzeichen" class="text-gray-600 font-medium">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════ -->
+  <div class="md:ml-56 min-h-screen flex flex-col pb-20 md:pb-0">
+
+    <!-- Ladeanimation -->
+    <div id="loading" class="flex flex-col items-center justify-center h-screen text-gray-400 gap-3">
+      <svg class="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      <span class="text-sm">Daten werden geladen…</span>
+    </div>
+
+    <!-- Fehler -->
+    <div id="error" class="hidden m-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"></div>
+
+    <div id="main" class="hidden flex-1">
+
+      <!-- ── PAGE HEADER ───────────────────────── -->
+      <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">Auto Dashboard</h1>
+          <p id="header-sub" class="text-sm text-gray-400 mt-0.5">Alle Fahrzeugkosten im Überblick</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="year-filter"
+            class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <option value="">Alle Jahre</option>
+          </select>
+          <button id="btn-refresh"
+            class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ════════════════════════════════════════
+           VIEW: DASHBOARD (Übersicht)
+      ════════════════════════════════════════ -->
+      <div id="view-dashboard" class="view active p-6 space-y-5">
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Gesamtausgaben</span>
+              <span class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </span>
+            </div>
+            <p id="kpi-gesamt" class="text-2xl font-bold text-gray-800">—</p>
+            <p id="kpi-gesamt-sub" class="text-xs text-gray-400 mt-1">Tanken + Weitere Kosten</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Tanken gesamt</span>
+              <span class="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+              </span>
+            </div>
+            <p id="kpi-tank-gesamt" class="text-2xl font-bold text-gray-800">—</p>
+            <p id="kpi-tank-sub" class="text-xs text-gray-400 mt-1">— Tankungen</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Ø Preis / Liter</span>
+              <span class="w-8 h-8 bg-green-50 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+              </span>
+            </div>
+            <p id="kpi-preis" class="text-2xl font-bold text-gray-800">—</p>
+            <p id="kpi-preis-sub" class="text-xs text-gray-400 mt-1">Gewichteter Durchschnitt</p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Letzter KM-Stand</span>
+              <span class="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                </svg>
+              </span>
+            </div>
+            <p id="kpi-km" class="text-2xl font-bold text-gray-800">—</p>
+            <p id="kpi-km-sub" class="text-xs text-gray-400 mt-1">— km</p>
+          </div>
+
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          <!-- Bar Chart: Monatliche Tankkosten -->
+          <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-semibold text-gray-800">Tanken & Fahrleistung</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Monatliche Tankkosten (€)</p>
+              </div>
+              <div id="last-tank-info" class="text-right text-xs text-gray-400 hidden">
+                <p class="font-medium text-gray-600">Letztes Tanken</p>
+                <p id="last-tank-date">—</p>
+                <p id="last-tank-details">—</p>
+              </div>
+            </div>
+            <div class="relative" style="height:160px">
+              <canvas id="barChart"></canvas>
+            </div>
+            <div id="km-monat-bar" class="hidden mt-3 flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2.5">
+              <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+              </svg>
+              <span class="text-sm text-blue-700 font-medium">Gefahrene km diesen Monat: <span id="km-monat-val">—</span> km</span>
+            </div>
+          </div>
+
+          <!-- Donut Chart: Kostenstruktur -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <h2 class="font-semibold text-gray-800 mb-1">Kostenstruktur</h2>
+            <p class="text-xs text-gray-400 mb-4">Ausgaben im Zeitraum</p>
+            <div class="relative" style="height:160px">
+              <canvas id="donutChart"></canvas>
+            </div>
+            <div id="donut-legend" class="mt-4 space-y-1.5"></div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          <!-- Nächste fällige Termine -->
+          <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-semibold text-gray-800">Nächste fällige Termine</h2>
+              <button class="nav-link text-xs text-blue-500 hover:text-blue-700 font-medium" data-view="termine">
+                Alle anzeigen →
+              </button>
+            </div>
+            <div id="upcoming-list" class="space-y-2"></div>
+          </div>
+
+          <!-- Ausgaben im Überblick -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-semibold text-gray-800">Letzte Ausgaben</h2>
+              <button class="nav-link text-xs text-blue-500 hover:text-blue-700 font-medium" data-view="kosten">
+                Alle →
+              </button>
+            </div>
+            <div id="recent-ausgaben" class="space-y-2"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ════════════════════════════════════════
+           VIEW: TANKEN (vollständige Liste)
+      ════════════════════════════════════════ -->
+      <div id="view-tanken" class="view p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">Tankvorgänge</h2>
+            <p id="tank-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
+          </div>
+          <button id="btn-add-tank"
+            class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Eintrag
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div id="list-tank"></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════
+           VIEW: KOSTEN (vollständige Liste)
+      ════════════════════════════════════════ -->
+      <div id="view-kosten" class="view p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">Weitere Ausgaben</h2>
+            <p id="kosten-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
+          </div>
+          <button id="btn-add-kosten"
+            class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Eintrag
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div id="list-kosten"></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════
+           VIEW: TERMINE
+      ════════════════════════════════════════ -->
+      <div id="view-termine" class="view p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">Fällige Termine</h2>
+            <p class="text-sm text-gray-400 mt-0.5">Alle wiederkehrenden Ausgaben mit Fälligkeit</p>
+          </div>
+          <button id="btn-add-termin"
+            class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Eintrag
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div id="list-termine"></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════
+           VIEW: STATISTIKEN
+      ════════════════════════════════════════ -->
+      <div id="view-statistiken" class="view p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-5">Statistiken</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <h3 class="font-semibold text-gray-800 mb-1">Jahresvergleich Tankkosten</h3>
+            <p class="text-xs text-gray-400 mb-4">Tankkosten pro Jahr (€)</p>
+            <div class="relative" style="height:200px">
+              <canvas id="yearChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <h3 class="font-semibold text-gray-800 mb-4">Kraftstoff-Verteilung</h3>
+            <div class="relative" style="height:200px">
+              <canvas id="kraftstoffChart"></canvas>
+            </div>
+            <div id="kraftstoff-legend" class="mt-4 space-y-1.5"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       BOTTOM NAV (Mobile)
+  ══════════════════════════════════════════ -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-20 safe-area-bottom">
+    <div class="flex">
+      <button class="mobile-nav flex-1 flex flex-col items-center py-2.5 text-xs text-blue-600 transition-colors" data-view="dashboard">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Übersicht
+      </button>
+      <button class="mobile-nav flex-1 flex flex-col items-center py-2.5 text-xs text-gray-400 transition-colors" data-view="tanken">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Tanken
+      </button>
+      <button class="mobile-nav flex-1 flex flex-col items-center py-2.5 text-xs text-gray-400 transition-colors" data-view="kosten">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Ausgaben
+      </button>
+      <button class="mobile-nav flex-1 flex flex-col items-center py-2.5 text-xs text-gray-400 transition-colors" data-view="termine">
+        <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        Termine
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Tankvorgang
+  ══════════════════════════════════════════ -->
+  <div id="modal-tank" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center backdrop-blur-sm">
+    <div class="bg-white w-full md:max-w-md md:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white rounded-t-2xl">
+        <h3 class="font-semibold text-gray-800">⛽ Tankvorgang erfassen</h3>
+        <button class="modal-close w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form id="form-tank" class="p-5 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Datum *</label>
+            <input type="date" name="datum" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Tankstelle *</label>
+            <input type="text" name="tankstelle" required placeholder="z.B. ARAL Frankfurt" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Kraftstoff *</label>
+            <select name="kraftstoff" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="Super E10">Super E10</option>
+              <option value="Super E5">Super E5</option>
+              <option value="Diesel">Diesel</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">KM-Stand</label>
+            <input type="number" name="km_stand" min="0" placeholder="0" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Liter *</label>
+            <input type="number" name="liter" step="0.01" min="0" required placeholder="0,00" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Kosten (€) *</label>
+            <input type="number" name="kosten" step="0.01" min="0" required placeholder="0,00" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Konto</label>
+            <select name="konto" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option>ING Sebi</option><option>DKB</option><option>Bar</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Karte</label>
+            <input type="text" name="karte" placeholder="#0000" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Hinweis</label>
+            <input type="text" name="hinweis" placeholder="optional" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="col-span-2 flex items-center gap-2.5">
+            <input type="checkbox" name="beleg" id="beleg-tank" class="w-4 h-4 rounded accent-blue-600">
+            <label for="beleg-tank" class="text-sm text-gray-600">Beleg vorhanden</label>
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors mt-2">
+          Speichern
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Kosten
+  ══════════════════════════════════════════ -->
+  <div id="modal-kosten" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center backdrop-blur-sm">
+    <div class="bg-white w-full md:max-w-md md:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white rounded-t-2xl">
+        <h3 class="font-semibold text-gray-800">📋 Ausgabe erfassen</h3>
+        <button class="modal-close w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form id="form-kosten" class="p-5 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Datum *</label>
+            <input type="date" name="datum" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Kategorie *</label>
+            <select name="kategorie" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option>KFZ-Steuer</option><option>Versicherung</option>
+              <option>Inspektion</option><option>Reparatur</option><option>Sonstiges</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Beschreibung *</label>
+            <input type="text" name="beschreibung" required placeholder="z.B. Hauptuntersuchung TÜV" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Betrag (€) *</label>
+            <input type="number" name="betrag" step="0.01" min="0" required placeholder="0,00" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Intervall</label>
+            <select name="intervall" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="einmalig">Einmalig</option>
+              <option value="jährlich">Jährlich</option>
+              <option value="monatlich">Monatlich</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Nächste Fälligkeit</label>
+            <input type="date" name="naechste_faelligkeit" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Konto</label>
+            <select name="konto" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option>ING Sebi</option><option>DKB</option><option>Bar</option>
+            </select>
+          </div>
+          <div class="col-span-2 flex items-center gap-2.5">
+            <input type="checkbox" name="beleg" id="beleg-kosten" class="w-4 h-4 rounded accent-blue-600">
+            <label for="beleg-kosten" class="text-sm text-gray-600">Beleg vorhanden</label>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Hinweis</label>
+            <input type="text" name="hinweis" placeholder="optional" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors mt-2">
+          Speichern
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-full shadow-xl z-50 whitespace-nowrap"></div>
+
+  <script src="js/config.js?v=1780866266"></script>
+  <script src="js/app.js?v=1780866266"></script>
+</body>
+</html>

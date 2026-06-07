@@ -1,0 +1,7 @@
+.env
+.DS_Store
+Archive/
+memory/
+docs/
+*.pyc
+__pycache__/
