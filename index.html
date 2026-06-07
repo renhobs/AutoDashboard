@@ -201,6 +201,13 @@
             </div>
             <p id="kpi-km" class="text-2xl font-bold text-gray-900">—</p>
             <p id="kpi-km-sub" class="text-xs text-gray-400 mt-1.5">KM-Stand noch nicht erfasst</p>
+            <button id="btn-add-km"
+              class="mt-2 text-xs text-blue-500 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              KM eintragen
+            </button>
           </div>
 
           <!-- Gesamtausgaben -->
@@ -746,6 +753,40 @@
   <!-- Toast -->
   <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-full shadow-xl z-50 whitespace-nowrap"></div>
 
+  <!-- KM-Stand Modal -->
+  <div id="modal-km" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-sm">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+        <h2 class="font-semibold text-gray-800">KM-Stand erfassen</h2>
+        <button class="modal-close w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form id="form-km" class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1.5">Datum</label>
+          <input type="date" name="datum" required
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1.5">Kilometerstand</label>
+          <div class="relative">
+            <input type="number" name="km_stand" required min="0" step="1" placeholder="z. B. 75000"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"/>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">km</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1.5">Notiz <span class="text-gray-300">(optional)</span></label>
+          <input type="text" name="notiz" placeholder="z. B. vor Inspektion"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+        </div>
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 rounded-xl transition-colors">
+          Speichern
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Bestätigungs-Modal (Löschen) -->
   <div id="modal-confirm" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm px-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -775,6 +816,6 @@
   </div>
 
   <script src="js/config.js?v=1780868894"></script>
-  <script src="js/app.js?v=1780869880"></script>
+  <script src="js/app.js?v=1780871342"></script>
 </body>
 </html>

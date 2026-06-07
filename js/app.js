@@ -8,12 +8,13 @@ const qAll = s => document.querySelectorAll(s);
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
-  tank:    [],
-  kosten:  [],
+  tank:     [],
+  kosten:   [],
+  kmstand:  [],
   fahrzeug: {},
-  view:    'dashboard',
-  year:    String(new Date().getFullYear()),
-  charts:  {}
+  view:     'dashboard',
+  year:     String(new Date().getFullYear()),
+  charts:   {}
 };
 
 // ─── Formatierung ─────────────────────────────────────────────────────────────
@@ -121,14 +122,16 @@ async function loadData() {
   setLoading(true);
   clearError();
   try {
-    const [t, k, f] = await Promise.all([
+    const [t, k, f, km] = await Promise.all([
       api.read('Tanken'),
       api.read('Kosten'),
-      api.read('Fahrzeug')
+      api.read('Fahrzeug'),
+      api.read('KMStand').catch(() => ({ data: [] }))
     ]);
 
-    state.tank   = (t.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    state.kosten = (k.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.tank    = (t.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.kosten  = (k.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.kmstand = (km.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
 
     // Fahrzeug: key-value Tabellenblatt → Objekt
     state.fahrzeug = {};
@@ -190,21 +193,21 @@ function calcStats() {
   const totalAll    = totalTank + totalKosten;
   const avgPreis    = totalLiter > 0 ? totalTank / totalLiter : 0;
 
-  // Letzter KM-Stand
-  const mitKm = [...state.tank].filter(e => e.km_stand && Number(e.km_stand) > 0)
-    .sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-  const lastKm = mitKm.length ? Number(mitKm[0].km_stand) : 0;
+  // Letzter KM-Stand (aus dediziertem KMStand-Sheet)
+  const kmSorted = [...state.kmstand].sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+  const lastKm   = kmSorted.length ? Number(kmSorted[0].km_stand) : 0;
+  const lastKmDat = kmSorted.length ? kmSorted[0].datum : null;
 
-  // KM diesen Monat
+  // KM diesen Monat (aus KMStand)
   const monatStr = today().slice(0, 7);
   const kmMonat = (() => {
-    const thisMonth = state.tank.filter(e => String(e.datum).startsWith(monatStr) && e.km_stand);
-    const lastMonth = state.tank.filter(e => !String(e.datum).startsWith(monatStr) && e.km_stand)
+    const thisMonth = state.kmstand.filter(e => String(e.datum).startsWith(monatStr));
+    const before    = state.kmstand.filter(e => !String(e.datum).startsWith(monatStr))
       .sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    if (thisMonth.length < 2 && !lastMonth.length) return 0;
-    const maxKm = Math.max(...thisMonth.map(e => Number(e.km_stand || 0)));
-    const minKm = lastMonth.length
-      ? Number(lastMonth[0].km_stand || 0)
+    if (!thisMonth.length && !before.length) return 0;
+    const maxKm = thisMonth.length ? Math.max(...thisMonth.map(e => Number(e.km_stand || 0))) : 0;
+    const minKm = before.length
+      ? Number(before[0].km_stand || 0)
       : Math.min(...thisMonth.map(e => Number(e.km_stand || 0)));
     return Math.max(0, maxKm - minKm);
   })();
@@ -242,7 +245,7 @@ function calcStats() {
   });
 
   return { tank, kosten, totalTank, totalLiter, totalKosten, totalAll,
-           avgPreis, lastKm, kmMonat, monthly, last6, katMap, kraftstoffMap, yearMap };
+           avgPreis, lastKm, lastKmDat, kmMonat, monthly, last6, katMap, kraftstoffMap, yearMap };
 }
 
 // ─── Render Übersicht ─────────────────────────────────────────────────────────
@@ -270,7 +273,7 @@ function renderDashboard() {
 
   // ── KPI: Kilometerstand ──
   q('#kpi-km').textContent     = s.lastKm ? s.lastKm.toLocaleString('de-DE') + ' km' : '—';
-  q('#kpi-km-sub').textContent = s.lastKm ? 'Zuletzt erfasst' : 'KM-Stand noch nicht erfasst';
+  q('#kpi-km-sub').textContent = s.lastKm ? `Zuletzt: ${dat(s.lastKmDat)}` : 'KM-Stand noch nicht erfasst';
 
   // ── KPI: Gesamtausgaben + YoY ──
   q('#kpi-gesamt').textContent = eur(s.totalAll);
@@ -290,17 +293,24 @@ function renderDashboard() {
     q('#kpi-gesamt-trend').className    = 'text-xs text-gray-400 mt-1.5';
   }
 
-  // ── KPI: Kosten pro km & Ø Verbrauch (brauchen km_stand) ──
-  const kmEntries = [...state.tank].filter(e => e.km_stand && Number(e.km_stand) > 0)
+  // ── KPI: Kosten pro km & Ø Verbrauch (aus KMStand-Sheet) ──
+  const kmYear = state.kmstand
+    .filter(e => String(e.datum || '').startsWith(cur))
     .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
-  if (kmEntries.length >= 2) {
-    const kmFirst = Number(kmEntries[0].km_stand);
-    const kmLast  = Number(kmEntries[kmEntries.length - 1].km_stand);
+  const kmYearEntries = kmYear.length >= 2 ? kmYear : (() => {
+    // Fallback: letzten Eintrag vor dem Jahr als Start nehmen
+    const before = state.kmstand.filter(e => String(e.datum || '') < cur)
+      .sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    return before.length ? [before[0], ...kmYear] : kmYear;
+  })();
+  if (kmYearEntries.length >= 2) {
+    const kmFirst = Number(kmYearEntries[0].km_stand);
+    const kmLast  = Number(kmYearEntries[kmYearEntries.length - 1].km_stand);
     const kmDelta = kmLast - kmFirst;
     if (kmDelta > 0) {
-      q('#kpi-kost-km').textContent     = num(s.totalAll / kmDelta, 2) + ' €/km';
-      q('#kpi-kost-km-sub').textContent = `${kmDelta.toLocaleString('de-DE')} km erfasst`;
-      q('#kpi-verbrauch').textContent   = num(s.totalLiter / kmDelta * 100, 1) + ' l';
+      q('#kpi-kost-km').textContent       = num(s.totalAll / kmDelta, 2) + ' €/km';
+      q('#kpi-kost-km-sub').textContent   = `${kmDelta.toLocaleString('de-DE')} km in ${cur}`;
+      q('#kpi-verbrauch').textContent     = num(s.totalLiter / kmDelta * 100, 1) + ' l';
       q('#kpi-verbrauch-sub').textContent = 'l / 100 km';
     }
   }
@@ -837,6 +847,7 @@ function setDefaultDates(formId) {
 document.addEventListener('DOMContentLoaded', () => {
   setDefaultDates('form-tank');
   setDefaultDates('form-kosten');
+  setDefaultDates('form-km');
 
   // Sidebar + mobile nav
   qAll('.nav-link[data-view], .mobile-nav[data-view]').forEach(btn => {
@@ -911,6 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Modals öffnen
+  q('#btn-add-km').addEventListener('click', () => { setDefaultDates('form-km'); openModal('modal-km'); });
   q('#btn-add-tank').addEventListener('click',   () => { setDefaultDates('form-tank');   openModal('modal-tank'); });
   const openKostenModal = () => {
     setDefaultDates('form-kosten');
@@ -961,6 +973,17 @@ document.addEventListener('DOMContentLoaded', () => {
       beleg:                fd.get('beleg') ? 'ja' : 'nein',
       hinweis:              fd.get('hinweis') || ''
     }, '✅ Ausgabe gespeichert');
+  });
+
+  // Form: KM-Stand
+  q('#form-km').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await submitForm('form-km', 'modal-km', 'KMStand', {
+      datum:    fd.get('datum'),
+      km_stand: parseInt(fd.get('km_stand')) || 0,
+      notiz:    fd.get('notiz') || ''
+    }, '📍 KM-Stand gespeichert');
   });
 
   // ── Excel Import ──────────────────────────────────────────────────────────
