@@ -186,6 +186,48 @@
           </div>
         </div>
 
+        <!-- ── Fahrzeug-Analyse Row ───────────────────────────── -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <!-- Fahrzeugalter -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-gray-500 font-medium">Fahrzeugalter</span>
+            </div>
+            <p id="fahrzeug-alter" class="text-xl font-bold text-gray-900">—</p>
+            <p id="fahrzeug-alter-sub" class="text-xs text-gray-400 mt-1.5">Zulassung nicht erfasst</p>
+          </div>
+
+          <!-- Ausgaben pro Intervall -->
+          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                  </svg>
+                </div>
+                <span class="text-sm text-gray-500 font-medium">Ausgaben pro</span>
+              </div>
+              <select id="intervall-filter"
+                class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="monat">Monat</option>
+                <option value="quartal">Quartal</option>
+                <option value="halbjahr">Halbjahr</option>
+                <option value="jahr">Jahr</option>
+              </select>
+            </div>
+            <p id="kpi-ausgaben-intervall" class="text-2xl font-bold text-gray-900">—</p>
+            <p id="kpi-ausgaben-intervall-sub" class="text-xs text-gray-400 mt-1.5">Ø gesamt</p>
+          </div>
+
+        </div>
+
         <!-- ── KPI Row ─────────────────────────────────────────── -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 
@@ -334,6 +376,34 @@
             </button>
           </div>
 
+        </div>
+
+        <!-- ── Kraftstoffpreise ──────────────────────────────────── -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+          <h2 class="font-semibold text-gray-800 mb-4">Kraftstoffpreise & Betankung</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+            <div>
+              <p class="text-xs text-gray-400 mb-1">Ø Preis/Liter</p>
+              <p id="kst-avg-liter" class="text-lg font-bold text-gray-800">—</p>
+              <p id="kst-avg-liter-sub" class="text-xs text-gray-400 mt-0.5">Gesamtdurchschnitt</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-1">Ø Kosten/Betankung</p>
+              <p id="kst-avg-kosten" class="text-lg font-bold text-gray-800">—</p>
+              <p id="kst-avg-kosten-sub" class="text-xs text-gray-400 mt-0.5">€ pro Tankvorgang</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-1">Ø Kosten/Monat</p>
+              <p id="kst-avg-monat" class="text-lg font-bold text-gray-800">—</p>
+              <p id="kst-avg-monat-sub" class="text-xs text-gray-400 mt-0.5">nur Tankausgaben</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-1">Ø Kosten/Jahr</p>
+              <p id="kst-avg-jahr" class="text-lg font-bold text-gray-800">—</p>
+              <p id="kst-avg-jahr-sub" class="text-xs text-gray-400 mt-0.5">nur Tankausgaben</p>
+            </div>
+          </div>
+          <div id="kst-by-art" class="space-y-0.5"></div>
         </div>
 
         <!-- ── Untere Reihe ────────────────────────────────────── -->
@@ -824,6 +894,6 @@
   </div>
 
   <script src="js/config.js?v=1780868894"></script>
-  <script src="js/app.js?v=1780873203"></script>
+  <script src="js/app.js?v=1780873655"></script>
 </body>
 </html>

@@ -354,6 +354,9 @@ function renderDashboard() {
   renderAusgabenUeberblick(s);
   renderBottomKpis(s);
   renderVehicleSidebar();
+  renderFahrzeugAlter();
+  renderAusgabenIntervall();
+  renderKraftstoffpreise();
 }
 
 // ─── Bar Chart ────────────────────────────────────────────────────────────────
@@ -771,6 +774,99 @@ function renderStatistiken() {
 
 // ─── Render All ───────────────────────────────────────────────────────────────
 
+function renderFahrzeugAlter() {
+  const z = state.fahrzeug.zulassung_datum;
+  if (!z) return;
+  const start     = new Date(z + 'T12:00:00');
+  const totalDays = Math.floor((new Date() - start) / 86400000);
+  const years     = Math.floor(totalDays / 365.25);
+  const remDays   = totalDays - Math.floor(years * 365.25);
+  const months    = Math.floor(remDays / 30.44);
+  const weeks     = Math.floor((remDays - Math.floor(months * 30.44)) / 7);
+  const parts     = [];
+  if (years  > 0) parts.push(`${years} Jahr${years  !== 1 ? 'e'  : ''}`);
+  if (months > 0) parts.push(`${months} Monat${months !== 1 ? 'e' : ''}`);
+  parts.push(`${weeks} Woche${weeks !== 1 ? 'n' : ''}`);
+  q('#fahrzeug-alter').textContent     = parts.join(', ');
+  q('#fahrzeug-alter-sub').textContent = `Zugelassen seit ${dat(z)}`;
+}
+
+function renderAusgabenIntervall() {
+  const intervall  = q('#intervall-filter')?.value || 'monat';
+  const allEntries = [
+    ...state.tank.map(e   => ({ datum: e.datum, betrag: Number(e.kosten  || 0) })),
+    ...state.kosten.map(e => ({ datum: e.datum, betrag: Number(e.betrag || 0) }))
+  ].filter(e => e.betrag > 0 && e.datum);
+  if (!allEntries.length) return;
+
+  const getPeriod = datum => {
+    const d = new Date(datum + 'T12:00:00');
+    if (intervall === 'monat')    return datum.slice(0, 7);
+    if (intervall === 'quartal')  return `${d.getFullYear()}-Q${Math.ceil((d.getMonth()+1)/3)}`;
+    if (intervall === 'halbjahr') return `${d.getFullYear()}-H${d.getMonth() < 6 ? 1 : 2}`;
+    return datum.slice(0, 4);
+  };
+  const now = new Date();
+  const currentPeriod = getPeriod(now.toISOString().slice(0, 10));
+  const periodMap = {};
+  allEntries.forEach(e => { const p = getPeriod(e.datum); periodMap[p] = (periodMap[p]||0) + e.betrag; });
+
+  const currentTotal = periodMap[currentPeriod] || 0;
+  const vals         = Object.values(periodMap);
+  const avg          = vals.reduce((s, v) => s + v, 0) / vals.length;
+  const labels       = { monat: 'Monat', quartal: 'Quartal', halbjahr: 'Halbjahr', jahr: 'Jahr' };
+
+  q('#kpi-ausgaben-intervall').textContent     = eur(currentTotal);
+  q('#kpi-ausgaben-intervall-sub').textContent = `Ø ${eur(Math.round(avg))} / ${labels[intervall]} (historisch)`;
+}
+
+function renderKraftstoffpreise() {
+  const mitDaten   = state.tank.filter(e => Number(e.liter) > 0 && Number(e.kosten) > 0);
+  const totalLiter = mitDaten.reduce((s, e) => s + Number(e.liter),  0);
+  const totalKost  = mitDaten.reduce((s, e) => s + Number(e.kosten), 0);
+
+  q('#kst-avg-liter').textContent     = totalLiter > 0 ? num(totalKost / totalLiter, 3) + ' €/l' : '—';
+  q('#kst-avg-liter-sub').textContent = `aus ${mitDaten.length} Tankungen`;
+  q('#kst-avg-kosten').textContent     = mitDaten.length > 0 ? eur(totalKost / mitDaten.length) : '—';
+  q('#kst-avg-kosten-sub').textContent = '€ pro Tankvorgang';
+
+  const allWithCost = state.tank.filter(e => Number(e.kosten) > 0)
+    .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+  if (allWithCost.length >= 2) {
+    const ms     = new Date(allWithCost.at(-1).datum+'T12:00:00') - new Date(allWithCost[0].datum+'T12:00:00');
+    const months = Math.max(1, ms / (1000*60*60*24*30.44));
+    const total  = allWithCost.reduce((s, e) => s + Number(e.kosten), 0);
+    q('#kst-avg-monat').textContent     = eur(total / months);
+    q('#kst-avg-monat-sub').textContent = `über ${Math.round(months)} Monate`;
+    q('#kst-avg-jahr').textContent      = eur(total / (months / 12));
+    q('#kst-avg-jahr-sub').textContent  = `über ${num(months/12, 1)} Jahre`;
+  }
+
+  const byArt   = {};
+  mitDaten.forEach(e => {
+    const k = e.kraftstoff || 'Unbekannt';
+    if (!byArt[k]) byArt[k] = { liter: 0, kosten: 0, count: 0 };
+    byArt[k].liter  += Number(e.liter);
+    byArt[k].kosten += Number(e.kosten);
+    byArt[k].count  += 1;
+  });
+  const artCol = { 'Super E10':'text-blue-600 bg-blue-50', 'Super E5':'text-green-600 bg-green-50', 'Diesel':'text-yellow-700 bg-yellow-50' };
+  q('#kst-by-art').innerHTML = Object.entries(byArt).sort((a,b) => b[1].kosten - a[1].kosten).map(([art, d]) => {
+    const avgL = d.liter > 0 ? d.kosten / d.liter : 0;
+    const col  = artCol[art] || 'text-gray-600 bg-gray-100';
+    return `<div class="flex items-center justify-between py-2 border-t border-slate-50">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${col}">${art}</span>
+        <span class="text-xs text-gray-400">${d.count} Tankungen</span>
+      </div>
+      <div class="flex gap-5 text-xs">
+        <span class="text-gray-500">Ø <span class="font-semibold text-gray-800">${num(avgL,3)} €/l</span></span>
+        <span class="text-gray-500">Gesamt <span class="font-semibold text-gray-800">${eur(d.kosten)}</span></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderAll() {
   syncKategorieDropdown();
   renderDashboard();
@@ -951,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Modals öffnen
+  q('#intervall-filter').addEventListener('change', renderAusgabenIntervall);
   q('#btn-add-km').addEventListener('click', () => { setDefaultDates('form-km'); openModal('modal-km'); });
   q('#btn-add-tank').addEventListener('click',   () => { setDefaultDates('form-tank');   openModal('modal-tank'); });
   const openKostenModal = () => {
