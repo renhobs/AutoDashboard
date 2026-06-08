@@ -1287,7 +1287,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modals öffnen
   q('#intervall-filter').addEventListener('change', renderAusgabenIntervall);
-  q('#btn-add-km').addEventListener('click', () => { setDefaultDates('form-km'); openModal('modal-km'); });
+  const btnAddKm = q('#btn-add-km');
+  if (btnAddKm) btnAddKm.addEventListener('click', () => { setDefaultDates('form-km'); openModal('modal-km'); });
   q('#btn-add-tank').addEventListener('click',   () => { setDefaultDates('form-tank');   openModal('modal-tank'); });
   const openKostenModal = () => {
     _editKostenRow = null;
