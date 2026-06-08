@@ -272,25 +272,27 @@ function calcStats() {
   const lastKm   = kmSorted.length ? Number(kmSorted[0].km_stand) : 0;
   const lastKmDat = kmSorted.length ? kmSorted[0].datum : null;
 
-  // KM diesen Monat (aus KMStand)
-  const monatStr = today().slice(0, 7);
-  const kmMonat = (() => {
-    const thisMonth = state.kmstand.filter(e => String(e.datum).startsWith(monatStr));
-    const before    = state.kmstand.filter(e => !String(e.datum).startsWith(monatStr))
+  // KM im aktuellen Filterzeitraum (aus KMStand)
+  const kmPeriod = (() => {
+    const filteredKm = filtered(state.kmstand)
+      .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+    if (!filteredKm.length) return 0;
+    const before = state.kmstand
+      .filter(e => !filteredKm.includes(e))
       .sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    if (!thisMonth.length && !before.length) return 0;
-    const maxKm = thisMonth.length ? Math.max(...thisMonth.map(e => Number(e.km_stand || 0))) : 0;
-    const minKm = before.length
+    const startKm = before.length
       ? Number(before[0].km_stand || 0)
-      : Math.min(...thisMonth.map(e => Number(e.km_stand || 0)));
-    return Math.max(0, maxKm - minKm);
+      : Number(filteredKm[0].km_stand || 0);
+    const endKm = Number(filteredKm[filteredKm.length - 1].km_stand || 0);
+    return Math.max(0, endKm - startKm);
   })();
 
   // Monatliche Tankkosten (letzte 6 Monate)
   const monthly = {};
   state.tank.forEach(e => {
     const m = String(e.datum).slice(0, 7);
-    if (m) monthly[m] = (monthly[m] || 0) + Number(e.kosten || 0);
+    const v = parseFloat(String(e.kosten || '0').replace(/[€\s ]/g, '').replace(',', '.')) || 0;
+    if (m) monthly[m] = (monthly[m] || 0) + v;
   });
   const last6 = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(); d.setMonth(d.getMonth() - (5 - i));
@@ -319,7 +321,7 @@ function calcStats() {
   });
 
   return { tank, kosten, totalTank, totalLiter, totalKosten, totalAll,
-           avgPreis, lastKm, lastKmDat, kmMonat, monthly, last6, katMap, kraftstoffMap, yearMap };
+           avgPreis, lastKm, lastKmDat, kmPeriod, monthly, last6, katMap, kraftstoffMap, yearMap };
 }
 
 // ─── Render Übersicht ─────────────────────────────────────────────────────────
@@ -362,10 +364,6 @@ function renderDashboard() {
   const cur = currentYear();
   const prv = String(Number(cur) - 1);
 
-  // ── KPI: Kilometerstand ──
-  q('#kpi-km').textContent     = s.lastKm ? s.lastKm.toLocaleString('de-DE') + ' km' : '—';
-  q('#kpi-km-sub').textContent = s.lastKm ? `Zuletzt: ${dat(s.lastKmDat)}` : 'KM-Stand noch nicht erfasst';
-
   // ── KPI: Gesamtausgaben + YoY ──
   q('#kpi-gesamt').textContent = eur(s.totalAll);
   const prvAll = [...state.tank, ...state.kosten]
@@ -384,23 +382,28 @@ function renderDashboard() {
     q('#kpi-gesamt-trend').className    = 'text-xs text-gray-400 mt-1.5';
   }
 
-  // ── KPI: Kosten pro km & Ø Verbrauch (aus KMStand-Sheet) ──
-  const kmYear = state.kmstand
-    .filter(e => String(e.datum || '').startsWith(cur))
+  // ── KPI: Kosten pro km & Ø Verbrauch (filter-aware) ──
+  const kmFiltered = filtered(state.kmstand)
     .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
-  const kmYearEntries = kmYear.length >= 2 ? kmYear : (() => {
-    // Fallback: letzten Eintrag vor dem Jahr als Start nehmen
-    const before = state.kmstand.filter(e => String(e.datum || '') < cur)
+  const kmPeriodEntries = (() => {
+    if (kmFiltered.length >= 2) return kmFiltered;
+    const earliestDate = kmFiltered.length ? String(kmFiltered[0].datum) : null;
+    const before = state.kmstand
+      .filter(e => !earliestDate || String(e.datum) < earliestDate)
       .sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    return before.length ? [before[0], ...kmYear] : kmYear;
+    return before.length ? [before[0], ...kmFiltered] : kmFiltered;
   })();
-  if (kmYearEntries.length >= 2) {
-    const kmFirst = Number(kmYearEntries[0].km_stand);
-    const kmLast  = Number(kmYearEntries[kmYearEntries.length - 1].km_stand);
+  const periodLabel = state.year === 'week'    ? 'diese Woche'
+                    : state.year === 'month'   ? 'diesen Monat'
+                    : state.year === 'quarter' ? 'dieses Quartal'
+                    : `in ${cur}`;
+  if (kmPeriodEntries.length >= 2) {
+    const kmFirst = Number(kmPeriodEntries[0].km_stand);
+    const kmLast  = Number(kmPeriodEntries[kmPeriodEntries.length - 1].km_stand);
     const kmDelta = kmLast - kmFirst;
     if (kmDelta > 0) {
       q('#kpi-kost-km').textContent       = num(s.totalAll / kmDelta, 2) + ' €/km';
-      q('#kpi-kost-km-sub').textContent   = `${kmDelta.toLocaleString('de-DE')} km in ${cur}`;
+      q('#kpi-kost-km-sub').textContent   = `${kmDelta.toLocaleString('de-DE')} km ${periodLabel}`;
       q('#kpi-verbrauch').textContent     = num(s.totalLiter / kmDelta * 100, 1) + ' l';
       q('#kpi-verbrauch-sub').textContent = 'l / 100 km';
     }
@@ -420,10 +423,12 @@ function renderDashboard() {
     q('#lt-datum').textContent  = dat(lt.datum);
   }
 
-  // ── KM diesen Monat ──
-  if (s.kmMonat > 0) {
+  // ── KM im Zeitraum ──
+  const kmPeriodEl = q('#km-monat-period');
+  if (kmPeriodEl) kmPeriodEl.textContent = periodLabel;
+  if (s.kmPeriod > 0) {
     q('#km-monat-bar').classList.remove('hidden');
-    q('#km-monat-val').textContent = s.kmMonat.toLocaleString('de-DE');
+    q('#km-monat-val').textContent = s.kmPeriod.toLocaleString('de-DE');
   } else {
     q('#km-monat-bar').classList.add('hidden');
   }
@@ -520,6 +525,15 @@ function renderDonutChart(s) {
         <span class="text-xs text-gray-400 ml-1">${total > 0 ? Math.round(v/total*100) : 0}%</span>
       </div>
     </div>`).join('');
+
+  const subtitleEl = q('#donut-subtitle');
+  if (subtitleEl) {
+    const label = state.year === 'week'    ? 'Diese Woche'
+                : state.year === 'month'   ? 'Dieser Monat'
+                : state.year === 'quarter' ? 'Dieses Quartal'
+                : `Jahr ${state.year || new Date().getFullYear()}`;
+    subtitleEl.textContent = label;
+  }
 }
 
 // ─── Upcoming Termine ─────────────────────────────────────────────────────────

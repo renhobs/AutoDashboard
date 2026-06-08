@@ -14,6 +14,30 @@ Format: [Semantic Versioning](https://semver.org/) — `MAJOR.MINOR.PATCH`
 
 ---
 
+## [v0.9.0] — 2026-06-08
+
+### Hinzugefügt
+- **Dashboard-Filter** (Woche/Monat/Quartal/Jahr) wirkt jetzt auf alle KPIs, KM-Delta und Kostenstruktur
+- **KM-Periode-Banner** zeigt filterabhängigen Text: "diese Woche", "diesen Monat", "in 2026" etc.
+- **Donut-Subtitle** dynamisch: "Dieser Monat", "Diese Woche", "Jahr 2026" etc.
+
+### Geändert
+- **Dashboard-Layout** grundlegend überarbeitet:
+  - Fahrzeug-Übersicht: ¼ Breite (vorher full-width)
+  - Tanken & Fahrleistung: ¾ Breite, rechts neben Fahrzeug-Übersicht positioniert
+  - Kilometerstand-KPI-Karte entfernt (KPI-Row jetzt 3-spaltig statt 4)
+  - Mittlere Reihe: 2-spaltig (Kostenstruktur + Ausgaben im Überblick)
+- **Kostenstruktur** enthält jetzt alle Kosten inkl. Tanken
+- **"Alle Ausgaben anzeigen"** Link in Kostenstruktur-Karte verschoben (vorher in Ausgaben im Überblick)
+- **KM-Delta** (Kosten/km, Ø Verbrauch) ist jetzt filterzeitraum-abhängig statt immer aufs Jahr
+- **Monatliche Kosten Bar Chart** — robustes String-Parsing behebt leere Balken bei String-kosten (z.B. `"78,50 €"`)
+
+### Behoben
+- Bar Chart zeigte leere Balken wenn `kosten` als String mit `€` gespeichert war
+- KPI "Kosten/km" zeigte immer Jahresdelta, auch bei Wochen-/Monatsfilter
+
+---
+
 ## [v0.8.1] — 2026-06-08
 
 ### Hinzugefügt
