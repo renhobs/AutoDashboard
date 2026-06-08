@@ -58,7 +58,7 @@
         data-view="tanken">
         <span class="nav-icon w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-gray-500 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3h8a1 1 0 011 1v13H4V4a1 1 0 011-1zm0 0v14m8-14v14m0-9h2a2 2 0 012 2v4a1 1 0 001 1h0a1 1 0 001-1V7l-3-3m-3 5H7m3 3H7"/>
           </svg>
         </span>
         Tanken
@@ -164,12 +164,9 @@
 
         <!-- ── Dashboard-Header ───────────────────────────────── -->
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <img src="img/seat-leon-mk4.png?v=1780870297" alt="Seat Leon" class="h-14 w-auto hidden sm:block" style="object-fit:contain">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">Auto Dashboard</h1>
-              <p id="header-sub" class="text-sm text-gray-400 mt-0.5">Seat Leon</p>
-            </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Auto Dashboard</h1>
+            <p id="header-sub" class="text-sm text-gray-400 mt-0.5">Seat Leon</p>
           </div>
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -186,46 +183,73 @@
           </div>
         </div>
 
-        <!-- ── Fahrzeug-Analyse Row ───────────────────────────── -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <!-- Fahrzeugalter -->
-          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        <!-- ── Ausgaben pro Intervall ────────────────────────── -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
               </div>
-              <span class="text-sm text-gray-500 font-medium">Fahrzeugalter</span>
+              <span class="text-sm text-gray-500 font-medium">Ausgaben pro</span>
             </div>
-            <p id="fahrzeug-alter" class="text-xl font-bold text-gray-900">—</p>
-            <p id="fahrzeug-alter-sub" class="text-xs text-gray-400 mt-1.5">Zulassung nicht erfasst</p>
+            <select id="intervall-filter"
+              class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="monat">Monat</option>
+              <option value="quartal">Quartal</option>
+              <option value="halbjahr">Halbjahr</option>
+              <option value="jahr">Jahr</option>
+            </select>
           </div>
+          <p id="kpi-ausgaben-intervall" class="text-2xl font-bold text-gray-900">—</p>
+          <p id="kpi-ausgaben-intervall-sub" class="text-xs text-gray-400 mt-1.5">Ø gesamt</p>
+        </div>
 
-          <!-- Ausgaben pro Intervall -->
-          <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        <!-- ── Fahrzeug Info-Box ──────────────────────────────── -->
+        <div id="fahrzeug-infobox" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="p-5">
+            <h2 class="font-semibold text-gray-800 mb-4">Fahrzeug-Übersicht</h2>
+            <div class="divide-y divide-slate-100">
+
+              <!-- Fahrzeugalter -->
+              <div class="py-3 first:pt-0">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Fahrzeugalter</p>
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                   </svg>
+                  <span id="fib-alter-val" class="text-sm font-semibold text-gray-800">—</span>
                 </div>
-                <span class="text-sm text-gray-500 font-medium">Ausgaben pro</span>
+                <p id="fib-alter-sub" class="text-xs text-gray-400 mt-1.5">Seit Erstzulassung</p>
               </div>
-              <select id="intervall-filter"
-                class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <option value="monat">Monat</option>
-                <option value="quartal">Quartal</option>
-                <option value="halbjahr">Halbjahr</option>
-                <option value="jahr">Jahr</option>
-              </select>
-            </div>
-            <p id="kpi-ausgaben-intervall" class="text-2xl font-bold text-gray-900">—</p>
-            <p id="kpi-ausgaben-intervall-sub" class="text-xs text-gray-400 mt-1.5">Ø gesamt</p>
-          </div>
 
+              <!-- Kilometerstand -->
+              <div class="py-3">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Kilometerstand</p>
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                  </svg>
+                  <span id="fib-km" class="text-sm font-semibold text-gray-800">—</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1.5">Letzter Eintrag</p>
+              </div>
+
+              <!-- Fiktive Leasingrate -->
+              <div class="py-3 last:pb-0">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Fiktive Leasingrate</p>
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span id="fib-leasing" class="text-sm font-semibold text-blue-600">—</span>
+                </div>
+                <p id="fib-leasing-total" class="text-xs text-gray-400 mt-1.5">Gesamtkosten —</p>
+              </div>
+
+            </div>
+          </div>
         </div>
 
         <!-- ── KPI Row ─────────────────────────────────────────── -->
@@ -486,6 +510,14 @@
             <p id="tank-count" class="text-sm text-gray-400 mt-0.5">— Einträge</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <!-- Vorlage -->
+            <button onclick="downloadImportTemplate()"
+              class="bg-white border border-slate-200 text-gray-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Vorlage
+            </button>
             <!-- Import -->
             <label id="import-trigger"
               class="bg-white border border-slate-200 text-gray-600 text-sm px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center gap-1.5 cursor-pointer">
@@ -555,6 +587,8 @@
             </div>
           </div>
         </div>
+
+        <div id="tank-incomplete-banner" class="hidden mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3"></div>
 
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div id="list-tank"></div>
@@ -666,7 +700,7 @@
       </button>
       <button class="mobile-nav flex-1 flex flex-col items-center py-2.5 text-xs text-gray-400 transition-colors" data-view="tanken">
         <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 3h8a1 1 0 011 1v13H4V4a1 1 0 011-1zm0 0v14m8-14v14m0-9h2a2 2 0 012 2v4a1 1 0 001 1h0a1 1 0 001-1V7l-3-3m-3 5H7m3 3H7"/>
         </svg>
         Tanken
       </button>
@@ -724,15 +758,22 @@
             <label class="block text-xs text-gray-500 mb-1.5 font-medium">Kosten (€) *</label>
             <input type="number" name="kosten" step="0.01" min="0" required placeholder="0,00" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
           </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Konto</label>
-            <select name="konto" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option>ING Sebi</option><option>DKB</option><option>Bar</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Karte</label>
-            <input type="text" name="karte" placeholder="#0000" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <div class="col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5 font-medium">Zahlungsmethode</label>
+            <div class="flex gap-2">
+              <select id="tank-zahlungsmethode" class="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">— Bitte wählen —</option>
+              </select>
+              <button type="button" id="btn-add-zahlungsmethode"
+                class="px-3 py-2 text-xs bg-slate-100 text-gray-600 rounded-xl hover:bg-slate-200 font-medium whitespace-nowrap flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Neu
+              </button>
+            </div>
+            <input type="hidden" id="tank-konto-hidden" name="konto">
+            <input type="hidden" id="tank-karte-hidden" name="karte">
           </div>
           <div class="col-span-2">
             <label class="block text-xs text-gray-500 mb-1.5 font-medium">Hinweis</label>
@@ -756,7 +797,7 @@
   <div id="modal-kosten" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center backdrop-blur-sm">
     <div class="bg-white w-full md:max-w-md md:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
       <div class="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white rounded-t-2xl">
-        <h3 class="font-semibold text-gray-800">📋 Ausgabe erfassen</h3>
+        <h3 id="modal-kosten-title" class="font-semibold text-gray-800">📋 Ausgabe erfassen</h3>
         <button class="modal-close w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none">&times;</button>
       </div>
       <form id="form-kosten" class="p-5 space-y-3">
@@ -857,6 +898,48 @@
     </div>
   </div>
 
+  <!-- Modal: Zahlungsmethode hinzufügen -->
+  <div id="modal-zahlungsmethode" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-sm">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+        <h2 class="font-semibold text-gray-800">💳 Zahlungsmethode hinzufügen</h2>
+        <button class="modal-close w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form id="form-zahlungsmethode" class="p-5 space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1.5">Name *</label>
+          <input type="text" name="zm_name" required placeholder="z.B. AMEX Platin"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1.5">Konto *</label>
+            <input type="text" name="zm_konto" required placeholder="z.B. AMEX"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1.5">Endziffern</label>
+            <input type="text" name="zm_endziffern" maxlength="8" placeholder="z.B. 0218"
+              class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1.5">Typ</label>
+          <select name="zm_typ" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Kreditkarte">Kreditkarte</option>
+            <option value="EC-Karte">EC-Karte</option>
+            <option value="Bar">Bar</option>
+            <option value="Sonstige">Sonstige</option>
+          </select>
+        </div>
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 rounded-xl transition-colors mt-1">
+          Speichern
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Bestätigungs-Modal (Löschen) -->
   <div id="modal-confirm" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm px-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -894,6 +977,6 @@
   </div>
 
   <script src="js/config.js?v=1780868894"></script>
-  <script src="js/app.js?v=1780873655"></script>
+  <script src="js/app.js?v=1780877000"></script>
 </body>
 </html>

@@ -8,14 +8,17 @@ const qAll = s => document.querySelectorAll(s);
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
-  tank:     [],
-  kosten:   [],
-  kmstand:  [],
-  fahrzeug: {},
-  view:     'dashboard',
-  year:     String(new Date().getFullYear()),
-  charts:   {}
+  tank:              [],
+  kosten:            [],
+  kmstand:           [],
+  fahrzeug:          {},
+  zahlungsmethoden:  [],
+  view:              'dashboard',
+  year:              String(new Date().getFullYear()),
+  charts:            {}
 };
+
+let _editKostenRow = null;
 
 // ─── Formatierung ─────────────────────────────────────────────────────────────
 
@@ -43,6 +46,7 @@ const api = {
   read:      sheet              => apiCall({ action: 'read',      sheet }),
   add:       (sheet, data)      => apiCall({ action: 'add',       sheet, data }),
   update:    (sheet, row, data) => apiCall({ action: 'update',    sheet, row, data }),
+  delete:    (sheet, row)       => apiCall({ action: 'delete',    sheet, row }),
   deleteAll: sheet              => apiCall({ action: 'deleteAll', sheet }),
 };
 
@@ -83,6 +87,51 @@ function exportToExcel() {
   XLSX.writeFile(wb, filename);
 }
 
+function downloadImportTemplate() {
+  const wb = XLSX.utils.book_new();
+  const header  = ['No.', 'Datum', 'Tankstelle', 'PLZ', 'Ort', 'Land', 'Kraftstoff', 'Liter', 'Kosten (€)', 'KM-Stand', 'Konto', 'Karten-ID', 'Beleg', 'Hinweis'];
+  const example = [1, '07.06.2026', 'ARAL', '69190', 'Walldorf', 'DE', 'Super E10', 45.00, 78.50, 75000, 'AMEX', '#0218', 'ja', 'Beispieleintrag – bitte löschen'];
+  const ws = XLSX.utils.aoa_to_sheet([header, example]);
+  ws['!cols'] = [
+    {wch:5},{wch:12},{wch:22},{wch:6},{wch:18},{wch:6},
+    {wch:12},{wch:8},{wch:11},{wch:11},{wch:14},{wch:11},{wch:8},{wch:30},
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, 'Tankvorgänge');
+  XLSX.writeFile(wb, 'AutoDashboard_Tanken_Vorlage.xlsx');
+}
+
+function parseTankstelleField(raw) {
+  raw = String(raw || '').trim();
+  if (!raw || raw === '- unbekannt -') return [raw, '', '', ''];
+  let land = '';
+  const ccM = raw.match(/\s*\(([A-Z]{2})\)\s*$/);
+  if (ccM) { land = ccM[1]; raw = raw.slice(0, raw.length - ccM[0].length).trim(); }
+  if (raw.includes('/')) {
+    const [b, loc] = raw.split('/', 2).map(s => s.trim());
+    const pm = loc.match(/^(\d{4,5})\s+(.+)$/);
+    if (pm) return [b, pm[1], pm[2].replace(/\.$/, ''), land || 'DE'];
+    return [b, '', loc, land || 'DE'];
+  }
+  const pm = raw.match(/\b(\d{4,5})\b\s+(\S.*)$/);
+  if (pm) return [raw.slice(0, pm.index).trim(), pm[1], pm[2].trim(), land || 'DE'];
+  const tokens = raw.split(' ');
+  if (tokens.length >= 2 && !raw.startsWith('-'))
+    return [tokens.slice(0, -1).join(' '), '', tokens[tokens.length - 1], land || 'DE'];
+  return [raw, '', '', land];
+}
+
+async function deleteTankEntry(row) {
+  if (!confirm('Diesen Tankeintrag wirklich löschen?')) return;
+  try {
+    await api.delete('Tanken', row);
+    await loadData();
+    renderTankList();
+    showToast('Eintrag gelöscht');
+  } catch (err) {
+    showToast('Fehler: ' + err.message);
+  }
+}
+
 function confirmDeleteAll(sheet) {
   const sel = q('#confirm-sheet-select');
   if (sel && sheet) sel.value = sheet;
@@ -121,16 +170,18 @@ async function loadData() {
   setLoading(true);
   clearError();
   try {
-    const [t, k, f, km] = await Promise.all([
+    const [t, k, f, km, zm] = await Promise.all([
       api.read('Tanken'),
       api.read('Kosten'),
       api.read('Fahrzeug'),
-      api.read('KMStand').catch(() => ({ data: [] }))
+      api.read('KMStand').catch(() => ({ data: [] })),
+      api.read('Zahlungsmethoden').catch(() => ({ data: [] }))
     ]);
 
-    state.tank    = (t.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    state.kosten  = (k.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
-    state.kmstand = (km.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.tank              = (t.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.kosten            = (k.data  || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.kmstand           = (km.data || []).sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+    state.zahlungsmethoden  = (zm.data || []);
 
     // Fahrzeug: erste Datenzeile direkt als Objekt
     state.fahrzeug = (f.data || [])[0] || {};
@@ -153,25 +204,54 @@ function buildYearFilter() {
     if (y && y.length === 4) years.add(y);
   });
 
-  const selectors = [q('#year-filter'), q('#year-filter-mobile')].filter(Boolean);
-  const current   = selectors[0]?.value || '';
+  const sortedYears = [...years].sort().reverse();
+  const selectors   = [q('#year-filter'), q('#year-filter-mobile')].filter(Boolean);
+  const current     = state.year || selectors[0]?.value || '';
+
   selectors.forEach(sel => {
-    sel.innerHTML = '<option value="">Alle Jahre</option>';
-    [...years].sort().reverse().forEach(y => {
-      const opt = document.createElement('option');
-      opt.value = y;
-      opt.textContent = y;
-      if (y === current || (!current && y === String(new Date().getFullYear()))) opt.selected = true;
-      sel.appendChild(opt);
-    });
+    sel.innerHTML = `
+      <optgroup label="Zeitraum">
+        <option value="week">Diese Woche</option>
+        <option value="month">Dieser Monat</option>
+        <option value="quarter">Dieses Quartal</option>
+      </optgroup>
+      <optgroup label="Jahr">
+        <option value="">Alle Jahre</option>
+        ${sortedYears.map(y => `<option value="${y}">${y}</option>`).join('')}
+      </optgroup>`;
+    const defaultY = String(new Date().getFullYear());
+    sel.value = current || (sortedYears.includes(defaultY) ? defaultY : sortedYears[0] || '');
   });
   state.year = selectors[0]?.value || '';
+}
+
+function currentYear() {
+  const special = ['week', 'month', 'quarter'];
+  return special.includes(state.year)
+    ? String(new Date().getFullYear())
+    : (state.year || String(new Date().getFullYear()));
 }
 
 // ─── Filter-Hilfsfunktion ─────────────────────────────────────────────────────
 
 function filtered(arr, dateField = 'datum') {
   if (!state.year) return arr;
+  if (state.year === 'week') {
+    const now = new Date(); const dow = now.getDay() || 7;
+    const mon = new Date(now); mon.setDate(now.getDate() - dow + 1); mon.setHours(0,0,0,0);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+    return arr.filter(e => { const d = new Date(String(e[dateField]||'')+'T12:00:00'); return d >= mon && d <= sun; });
+  }
+  if (state.year === 'month') {
+    const prefix = today().slice(0, 7);
+    return arr.filter(e => String(e[dateField] || '').startsWith(prefix));
+  }
+  if (state.year === 'quarter') {
+    const now = new Date(); const q0 = Math.floor(now.getMonth() / 3) * 3;
+    const qStart = new Date(now.getFullYear(), q0, 1);
+    const qEnd   = new Date(now.getFullYear(), q0 + 3, 0, 23, 59, 59);
+    return arr.filter(e => { const d = new Date(String(e[dateField]||'')+'T12:00:00'); return d >= qStart && d <= qEnd; });
+  }
   return arr.filter(e => String(e[dateField] || '').startsWith(state.year));
 }
 
@@ -279,7 +359,7 @@ const KAT_COLOR = {
 
 function renderDashboard() {
   const s   = calcStats();
-  const cur = state.year || String(new Date().getFullYear());
+  const cur = currentYear();
   const prv = String(Number(cur) - 1);
 
   // ── KPI: Kilometerstand ──
@@ -354,7 +434,7 @@ function renderDashboard() {
   renderAusgabenUeberblick(s);
   renderBottomKpis(s);
   renderVehicleSidebar();
-  renderFahrzeugAlter();
+  renderFahrzeugInfoBox();
   renderAusgabenIntervall();
   renderKraftstoffpreise();
 }
@@ -575,8 +655,28 @@ function renderVehicleSidebar() {
 // ─── Liste: Tankvorgänge ──────────────────────────────────────────────────────
 
 function renderTankList() {
-  const tank = filtered(state.tank);
-  q('#tank-count').textContent = `${tank.length} Einträge`;
+  const tank     = filtered(state.tank);
+  const total    = state.tank.length;
+  const incAll   = state.tank.filter(e => !(Number(e.liter) > 0) || !(Number(e.kosten) > 0));
+  const incView  = tank.filter(e => !(Number(e.liter) > 0) || !(Number(e.kosten) > 0));
+
+  let countText = state.year ? `${tank.length} von ${total} Einträgen` : `${total} Einträge`;
+  if (incAll.length > 0) countText += ` · ${incAll.length} unvollständig`;
+  q('#tank-count').textContent = countText;
+
+  const banner = q('#tank-incomplete-banner');
+  if (incView.length > 0) {
+    banner.innerHTML = `<svg class="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-medium text-amber-800">${incView.length} Eintrag${incView.length !== 1 ? 'e fehlen' : ' fehlt'} Liter/Kosten-Daten</p>
+      <p class="text-xs text-amber-600 mt-0.5">Beim Import ohne Mengen- und Kostendaten importiert. Eintrag löschen und manuell neu erfassen — oder direkt in Google Sheets korrigieren.</p>
+    </div>`;
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
 
   q('#list-tank').innerHTML = tank.length ? `
     <table class="w-full text-sm">
@@ -588,20 +688,34 @@ function renderTankList() {
           <th class="text-right px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Liter</th>
           <th class="text-right px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">€/L</th>
           <th class="text-right px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Kosten</th>
+          <th class="px-3 py-3"></th>
         </tr>
       </thead>
       <tbody>
         ${tank.map(e => {
+          const inc   = !(Number(e.liter) > 0) || !(Number(e.kosten) > 0);
           const preisL = Number(e.liter) > 0 ? (Number(e.kosten) / Number(e.liter)) : 0;
-          return `<tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-            <td class="px-5 py-3 text-gray-600 whitespace-nowrap">${dat(e.datum)}</td>
+          const rowCls = inc
+            ? 'border-b border-amber-100 bg-amber-50/50 hover:bg-amber-50 transition-colors'
+            : 'border-b border-slate-50 hover:bg-slate-50 transition-colors';
+          return `<tr class="${rowCls}">
+            <td class="px-5 py-3 text-gray-600 whitespace-nowrap">
+              ${inc ? '<span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1.5 align-middle"></span>' : ''}${dat(e.datum)}
+            </td>
             <td class="px-5 py-3 text-gray-700 font-medium hidden md:table-cell max-w-xs truncate">${e.tankstelle || '—'}</td>
             <td class="px-5 py-3 hidden sm:table-cell">
               <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">${e.kraftstoff || '—'}</span>
             </td>
-            <td class="px-5 py-3 text-right text-gray-600">${num(e.liter)}</td>
+            <td class="px-5 py-3 text-right ${inc ? 'text-amber-500 font-medium' : 'text-gray-600'}">${inc ? '—' : num(e.liter)}</td>
             <td class="px-5 py-3 text-right text-gray-500 text-xs">${preisL ? num(preisL, 3) : '—'}</td>
-            <td class="px-5 py-3 text-right font-semibold text-gray-800">${eur(e.kosten)}</td>
+            <td class="px-5 py-3 text-right font-semibold ${inc ? 'text-amber-500' : 'text-gray-800'}">${inc ? '—' : eur(e.kosten)}</td>
+            <td class="px-3 py-3 text-right">
+              <button onclick="deleteTankEntry(${e._row})" class="text-gray-300 hover:text-red-400 transition-colors" title="Eintrag löschen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -700,10 +814,18 @@ function renderTermineList() {
               <td class="px-5 py-3 text-right font-semibold text-gray-800">${eur(e.betrag)}</td>
               <td class="px-5 py-3">${badge}</td>
               <td class="px-5 py-3">
-                <button data-erledigt="${e._row}"
-                  class="text-xs px-3 py-1.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors whitespace-nowrap">
-                  ${btnLabel}
-                </button>
+                <div class="flex items-center gap-1.5">
+                  <button data-erledigt="${e._row}"
+                    class="text-xs px-3 py-1.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors whitespace-nowrap">
+                    ${btnLabel}
+                  </button>
+                  <button data-edit="${e._row}"
+                    class="text-xs px-2.5 py-1.5 rounded-xl bg-slate-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 font-medium transition-colors" title="Bearbeiten">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                </div>
               </td>
             </tr>`;
         }).join('')}
@@ -712,11 +834,17 @@ function renderTermineList() {
 
   // Event-Delegation auf Container
   container.onclick = ev => {
-    const btn = ev.target.closest('[data-erledigt]');
-    if (!btn) return;
-    const row  = Number(btn.dataset.erledigt);
-    const entry = container._termineData.find(e => e._row === row);
-    if (entry) markTerminErledigt(entry);
+    const btnE = ev.target.closest('[data-erledigt]');
+    if (btnE) {
+      const entry = container._termineData.find(e => e._row === Number(btnE.dataset.erledigt));
+      if (entry) markTerminErledigt(entry);
+      return;
+    }
+    const btnEd = ev.target.closest('[data-edit]');
+    if (btnEd) {
+      const entry = container._termineData.find(e => e._row === Number(btnEd.dataset.edit));
+      if (entry) openEditTermin(entry);
+    }
   };
 }
 
@@ -789,6 +917,55 @@ function renderFahrzeugAlter() {
   parts.push(`${weeks} Woche${weeks !== 1 ? 'n' : ''}`);
   q('#fahrzeug-alter').textContent     = parts.join(', ');
   q('#fahrzeug-alter-sub').textContent = `Zugelassen seit ${dat(z)}`;
+}
+
+function renderFahrzeugInfoBox() {
+  const f = state.fahrzeug;
+  const zul = f.zulassung_datum ? String(f.zulassung_datum).slice(0, 10) : null;
+  let monthsSinceZul = 0;
+
+  if (zul) {
+    const from = new Date(zul + 'T12:00:00');
+    const now  = new Date();
+    monthsSinceZul = Math.max(1, (now.getFullYear() - from.getFullYear()) * 12 + (now.getMonth() - from.getMonth()));
+  }
+
+  // Letzter KM-Stand
+  const kmSorted = [...state.kmstand].sort((a, b) => String(b.datum).localeCompare(String(a.datum)));
+  const lastKm   = kmSorted.length ? Number(kmSorted[0].km_stand).toLocaleString('de-DE') + ' km' : '—';
+
+  // Fiktive Leasingrate = Gesamtkosten ever / Monate seit Zulassung
+  const allTimeTank  = state.tank.reduce((s, e) => s + Number(e.kosten  || 0), 0);
+  const allTimeKosten = state.kosten.reduce((s, e) => s + Number(e.betrag || 0), 0);
+  const allTimeTotal  = allTimeTank + allTimeKosten;
+  const leasingrate   = monthsSinceZul > 0 ? eur(allTimeTotal / monthsSinceZul) : '—';
+
+  let alterText = '—';
+  let alterSub  = 'Seit Erstzulassung';
+  if (zul) {
+    const from2     = new Date(zul + 'T12:00:00');
+    const totalDays = Math.floor((new Date() - from2) / 86400000);
+    const yy  = Math.floor(totalDays / 365.25);
+    const rem = totalDays - Math.floor(yy * 365.25);
+    const mm  = Math.floor(rem / 30.44);
+    const ww  = Math.floor((rem - Math.floor(mm * 30.44)) / 7);
+    const parts = [];
+    if (yy > 0) parts.push(`${yy} Jahr${yy !== 1 ? 'e' : ''}`);
+    if (mm > 0) parts.push(`${mm} Monat${mm !== 1 ? 'e' : ''}`);
+    parts.push(`${ww} Woche${ww !== 1 ? 'n' : ''}`);
+    alterText = parts.join(', ');
+    alterSub  = `Zugelassen seit ${dat(zul)}`;
+  }
+  const ibAlter    = q('#fib-alter-val');
+  const ibAlterSub = q('#fib-alter-sub');
+  const ibKm       = q('#fib-km');
+  const ibLeasing  = q('#fib-leasing');
+  const ibTotal    = q('#fib-leasing-total');
+  if (ibAlter)    ibAlter.textContent    = alterText;
+  if (ibAlterSub) ibAlterSub.textContent = alterSub;
+  if (ibKm)       ibKm.textContent       = lastKm;
+  if (ibLeasing)  ibLeasing.textContent  = leasingrate + '/Monat';
+  if (ibTotal)    ibTotal.textContent    = `Gesamtkosten ${eur(allTimeTotal)}`;
 }
 
 function renderAusgabenIntervall() {
@@ -869,11 +1046,28 @@ function renderKraftstoffpreise() {
 
 function renderAll() {
   syncKategorieDropdown();
+  syncZahlungsmethodeDropdown();
   renderDashboard();
   renderTankList();
   renderKostenList();
   renderTermineList();
   renderStatistiken();
+}
+
+function openEditTermin(entry) {
+  _editKostenRow = entry._row;
+  const form = q('#form-kosten');
+  form.querySelector('[name="datum"]').value               = entry.datum || '';
+  form.querySelector('[name="kategorie"]').value           = entry.kategorie || '';
+  form.querySelector('[name="beschreibung"]').value        = entry.beschreibung || '';
+  form.querySelector('[name="betrag"]').value              = entry.betrag || '';
+  form.querySelector('[name="intervall"]').value           = entry.intervall || 'einmalig';
+  form.querySelector('[name="naechste_faelligkeit"]').value = entry.naechste_faelligkeit || '';
+  form.querySelector('[name="konto"]').value               = entry.konto || '';
+  form.querySelector('[name="beleg"]').checked             = entry.beleg === 'ja';
+  form.querySelector('[name="hinweis"]').value             = entry.hinweis || '';
+  q('#modal-kosten-title').textContent = '✏️ Ausgabe bearbeiten';
+  openModal('modal-kosten');
 }
 
 function syncKategorieDropdown() {
@@ -887,6 +1081,28 @@ function syncKategorieDropdown() {
       opt.value = opt.textContent = kat;
       sel.appendChild(opt);
     }
+  });
+  // Alphabetisch sortieren (Leerzeichen-Option oben lassen, falls vorhanden)
+  const opts = Array.from(sel.options).filter(o => o.value);
+  opts.sort((a, b) => a.text.localeCompare(b.text, 'de'));
+  const placeholder = Array.from(sel.options).find(o => !o.value);
+  sel.innerHTML = '';
+  if (placeholder) sel.appendChild(placeholder);
+  opts.forEach(o => sel.appendChild(o));
+}
+
+function syncZahlungsmethodeDropdown() {
+  const sel = q('#tank-zahlungsmethode');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Bitte wählen —</option>';
+  state.zahlungsmethoden.forEach(z => {
+    const val = JSON.stringify({ konto: z.konto || '', karte: z.endziffern ? '#' + z.endziffern : '' });
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = z.name + (z.endziffern ? ' (#' + z.endziffern + ')' : '');
+    if (val === cur) opt.selected = true;
+    sel.appendChild(opt);
   });
 }
 
@@ -1051,17 +1267,26 @@ document.addEventListener('DOMContentLoaded', () => {
   q('#btn-add-km').addEventListener('click', () => { setDefaultDates('form-km'); openModal('modal-km'); });
   q('#btn-add-tank').addEventListener('click',   () => { setDefaultDates('form-tank');   openModal('modal-tank'); });
   const openKostenModal = () => {
+    _editKostenRow = null;
+    const t = q('#modal-kosten-title');
+    if (t) t.textContent = '📋 Ausgabe erfassen';
+    q('#form-kosten').reset();
     setDefaultDates('form-kosten');
-    // Fälligkeit sofort aus Datum + Intervall berechnen (nicht einfach heute)
     q('#kosten-faelligkeit').value = nextDueDate(q('#kosten-datum').value, q('#kosten-intervall').value) || '';
     openModal('modal-kosten');
   };
   q('#btn-add-kosten').addEventListener('click', openKostenModal);
   q('#btn-add-termin').addEventListener('click', openKostenModal);
 
-  // Modals schließen
-  qAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAll));
-  qAll('[id^="modal-"]').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeAll(); }));
+  // Modals schließen — edit-Modus zurücksetzen
+  const closeAndReset = () => {
+    closeAll();
+    _editKostenRow = null;
+    const t = q('#modal-kosten-title');
+    if (t) t.textContent = '📋 Ausgabe erfassen';
+  };
+  qAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAndReset));
+  qAll('[id^="modal-"]').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeAndReset(); }));
 
   // Form: Tankvorgang
   q('#form-tank').addEventListener('submit', async e => {
@@ -1084,11 +1309,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, '⛽ Tankvorgang gespeichert');
   });
 
-  // Form: Kosten
+  // Form: Kosten (neu + bearbeiten)
   q('#form-kosten').addEventListener('submit', async e => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    await submitForm('form-kosten', 'modal-kosten', 'Kosten', {
+    const fd  = new FormData(e.target);
+    const data = {
       datum:                fd.get('datum'),
       kategorie:            fd.get('kategorie'),
       beschreibung:         fd.get('beschreibung'),
@@ -1098,8 +1323,67 @@ document.addEventListener('DOMContentLoaded', () => {
       konto:                fd.get('konto'),
       beleg:                fd.get('beleg') ? 'ja' : 'nein',
       hinweis:              fd.get('hinweis') || ''
-    }, '✅ Ausgabe gespeichert');
+    };
+    if (_editKostenRow) {
+      const btn = q('#form-kosten button[type="submit"]');
+      btn.disabled = true; btn.textContent = 'Speichern…';
+      try {
+        await api.update('Kosten', _editKostenRow, data);
+        _editKostenRow = null;
+        closeAll();
+        const t = q('#modal-kosten-title'); if (t) t.textContent = '📋 Ausgabe erfassen';
+        toast('✅ Ausgabe aktualisiert');
+        await loadData();
+      } catch (err) { toast('❌ Fehler: ' + err.message, 4000); }
+      finally { btn.disabled = false; btn.textContent = 'Speichern'; }
+    } else {
+      await submitForm('form-kosten', 'modal-kosten', 'Kosten', data, '✅ Ausgabe gespeichert');
+    }
   });
+
+  // Zahlungsmethode-Dropdown → konto/karte auto-befüllen
+  const zmSel = q('#tank-zahlungsmethode');
+  if (zmSel) {
+    zmSel.addEventListener('change', () => {
+      const val = zmSel.value;
+      const kh  = q('#tank-konto-hidden');
+      const kth = q('#tank-karte-hidden');
+      if (!val) { if (kh) kh.value = ''; if (kth) kth.value = ''; return; }
+      try {
+        const { konto, karte } = JSON.parse(val);
+        if (kh)  kh.value  = konto || '';
+        if (kth) kth.value = karte || '';
+      } catch {}
+    });
+  }
+
+  // Button: neue Zahlungsmethode öffnen
+  const btnZm = q('#btn-add-zahlungsmethode');
+  if (btnZm) btnZm.addEventListener('click', () => openModal('modal-zahlungsmethode'));
+
+  // Form: Zahlungsmethode
+  const formZm = q('#form-zahlungsmethode');
+  if (formZm) {
+    formZm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const btn = formZm.querySelector('button[type="submit"]');
+      btn.disabled = true; btn.textContent = 'Speichern…';
+      try {
+        await api.add('Zahlungsmethoden', {
+          name:        fd.get('zm_name'),
+          konto:       fd.get('zm_konto'),
+          endziffern:  fd.get('zm_endziffern') || '',
+          typ:         fd.get('zm_typ') || ''
+        });
+        closeAll();
+        formZm.reset();
+        toast('💳 Zahlungsmethode gespeichert');
+        await loadData();
+      } catch (err) { toast('❌ Fehler: ' + err.message, 4000); }
+      finally { btn.disabled = false; btn.textContent = 'Speichern'; }
+    });
+  }
 
   // Form: KM-Stand
   q('#form-km').addEventListener('submit', async e => {
@@ -1121,24 +1405,101 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
   }
 
-  function parseExcel(workbook) {
-    const ws    = workbook.Sheets[workbook.SheetNames[0]];
-    const rows  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-    const results = [];
+  function parseDateCell(raw) {
+    if (!raw && raw !== 0) return '';
+    if (typeof raw === 'number') return excelSerialToISO(raw);
+    const s = String(raw).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return '';
+  }
 
+  function parseExcel(workbook) {
+    const ws   = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!rows.length) return [];
+    const f0 = String(rows[0][0] || '').toLowerCase().trim();
+    const f1 = String(rows[0][1] || '').toLowerCase().trim();
+    // Header-Format: erste Zelle = "datum"/"date"/"no."/"no", oder zweite = "datum"
+    if (['datum','date','no.','no'].includes(f0) || f1 === 'datum' || f1 === 'date')
+      return parseExcelTemplate(rows);
+    return parseExcelLegacy(rows);
+  }
+
+  function parseExcelTemplate(rows) {
+    const headers = rows[0].map(h => String(h || '').toLowerCase().trim());
+    const ci  = name => headers.findIndex(h => h.includes(name));
+    const iDat   = ci('datum');
+    const iTank  = ci('tankstelle');
+    const iPlz   = ci('plz');
+    const iOrt   = ci('ort');
+    const iLand  = ci('land');
+    const iKraft = ci('kraftstoff');
+    const iLit   = ci('liter');
+    const iKost  = ci('kosten');
+    const iKm    = ci('km');
+    const iKont  = ci('konto');
+    const iKar   = headers.findIndex(h => h.includes('karten') || h.includes('karte'));
+    const iBel   = ci('beleg');
+    const iHin   = ci('hinweis');
+
+    const results = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const datum = parseDateCell(row[iDat]);
+      if (!datum) continue;
+      const tankRaw = String(row[iTank] || '').trim();
+      if (!tankRaw) continue;
+
+      const clean = s => parseFloat(String(s || '').replace(/[€\s ]/g, '').replace(',', '.')) || 0;
+      const liter  = clean(row[iLit]);
+      const kosten = clean(row[iKost]);
+
+      // PLZ/Ort/Land: separate Spalten nutzen; wenn leer → aus Tankstelle parsen
+      let plz  = iPlz  >= 0 ? String(row[iPlz]  || '').trim() : '';
+      let ort  = iOrt  >= 0 ? String(row[iOrt]  || '').trim() : '';
+      let land = iLand >= 0 ? String(row[iLand] || '').trim() : '';
+      let tankstelle = tankRaw;
+      if (!plz && !ort) {
+        [tankstelle, plz, ort, land] = parseTankstelleField(tankRaw);
+      }
+
+      // KM-Stand: Werte < 10 sind Legacy-Preis/Liter-Daten → ignorieren
+      let kmStand = iKm >= 0 ? String(row[iKm] || '').trim() : '';
+      const kmNum = parseFloat(kmStand.replace(',', '.').replace(/[€\s ]/g, ''));
+      if (!isNaN(kmNum) && kmNum > 0 && kmNum < 10) kmStand = '';
+
+      // Karten-ID: "None" normalisieren
+      const karte = iKar >= 0 ? String(row[iKar] || '').trim().replace(/^none$/i, '') : '';
+
+      results.push({
+        datum, tankstelle, plz, ort, land,
+        kraftstoff:      String(row[iKraft] || '').trim(),
+        liter:           Math.round(liter  * 1000) / 1000,
+        kosten:          Math.round(kosten * 100)  / 100,
+        preis_pro_liter: liter > 0 ? Math.round(kosten / liter * 10000) / 10000 : '',
+        km_stand:        kmStand,
+        konto:           iKont >= 0 ? String(row[iKont] || '').trim() : '',
+        karte,
+        beleg:  iBel >= 0 && /^ja$/i.test(String(row[iBel] || '').trim()) ? 'ja' : 'nein',
+        hinweis: iHin >= 0 ? String(row[iHin] || '').trim() : '',
+      });
+    }
+    return results.sort((a, b) => a.datum.localeCompare(b.datum));
+  }
+
+  function parseExcelLegacy(rows) {
+    const results = [];
     for (const row of rows) {
-      // Datenzeilen erkennen: Spalte C (index 2) enthält laufende Nummer
       const no = row[2];
       if (!no || isNaN(Number(no))) continue;
-
       const datumSerial = row[3];
       if (!datumSerial || isNaN(Number(datumSerial))) continue;
       const datum = excelSerialToISO(Number(datumSerial));
       if (!datum) continue;
-
       const liter  = parseFloat(row[6]) || 0;
       const kosten = parseFloat(row[7]) || 0;
-
       results.push({
         datum,
         tankstelle:      String(row[4] || '').trim(),
@@ -1147,9 +1508,9 @@ document.addEventListener('DOMContentLoaded', () => {
         kosten:          Math.round(kosten * 100)  / 100,
         preis_pro_liter: liter > 0 ? Math.round(kosten / liter * 10000) / 10000 : '',
         km_stand:        '',
-        konto:           String(row[9] || '').trim(),
+        konto:           String(row[9]  || '').trim(),
         karte:           String(row[10] || '').trim(),
-        beleg:           String(row[1] || '') === 'o' ? 'ja' : 'nein',
+        beleg:           String(row[1]  || '') === 'o' ? 'ja' : 'nein',
         hinweis:         String(row[11] || '').trim(),
       });
     }
