@@ -31,15 +31,24 @@ const KAT_ICONS = { 'KFZ-Steuer':'📋', Versicherung:'🛡', Inspektion:'🔧',
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-async function apiCall(params) {
+async function apiCall(params, timeoutMs = 15000) {
   const url = new URL(API_URL);
   for (const [k, v] of Object.entries(params))
     url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url.toString(), { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Zeitüberschreitung — Server antwortet nicht (>15s)');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 const api = {
